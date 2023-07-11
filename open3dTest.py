@@ -4,23 +4,74 @@ import open3d.visualization as vis
 import cv2
 import numpy as np
 
+from time import sleep
 
-#o3d.t.io.RealSenseSensor.list_devices()
+
+o3d.t.io.RealSenseSensor.list_devices()
 
 
 with open("realsenseConfig.json") as cf:
-    rs_cfg = o3d.t.io.RealSenseSensorConfig(json.load(cf))
+    a = json.load(cf)
+    rs1_cfg = o3d.t.io.RealSenseSensorConfig(a)
+    
+with open("realsenseConfig copy.json") as cf:
+    a = json.load(cf)
+    rs2_cfg = o3d.t.io.RealSenseSensorConfig(a)
 
 
-rs = o3d.t.io.RealSenseSensor()
-rs.init_sensor(rs_cfg, 0)
-rs.start_capture(False)
+rs1 = o3d.t.io.RealSenseSensor()
+rs1.init_sensor(rs1_cfg, sensor_index=0)
+rs1.start_capture(False)
+
+rs2 = o3d.t.io.RealSenseSensor()
+rs2.init_sensor(rs2_cfg)
+print(rs1.get_metadata(), rs2.get_metadata())
+
+rs2.start_capture(False)
+
 camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
 
-for fid in range(150):
-    im_rgbd = rs.capture_frame(True, True)
-    point_cloud = o3d.geometry.PointCloud.create_from_rgbd_image(image=o3d.geometry.RGBDImage.create_from_color_and_depth(color=im_rgbd.color.to_legacy(), depth=im_rgbd.depth.to_legacy(), convert_rgb_to_intensity=False), intrinsic=camera_intrinsic, extrinsic=np.identity(4))
-    vis.draw_geometries([point_cloud])
+visual = vis.Visualizer()
+visual.create_window()
 
-rs.stop_capture()
+def createPointCloud(rgbdIM):
+    rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color=rgbdIM.color.to_legacy(), depth=rgbdIM.depth.to_legacy(), convert_rgb_to_intensity=False)
+    return o3d.geometry.PointCloud.create_from_rgbd_image(image=rgbd, intrinsic=camera_intrinsic, extrinsic=np.identity(4))
+
+
+im_rgbd1 = rs1.capture_frame(True, True)
+im_rgbd2 = rs2.capture_frame(True, True)
+pointcloudCam1 = createPointCloud(im_rgbd1)
+pointcloudCam2 = createPointCloud(im_rgbd2)
+geometry = pointcloudCam1
+
+geometry.points.extend(pointcloudCam2.points)
+geometry.colors.extend(pointcloudCam2.colors)
+
+visual.add_geometry(geometry)
+visual.poll_events()
+visual.update_renderer()
+
+while True:
+    #visual.remove_geometry(geometry, False)
+    im = rs1.capture_frame(True, True)
+    im2 = rs2.capture_frame(True, True)
+    pointcloud = createPointCloud(im)
+    pointcloud2 = createPointCloud(im2)
+    
+    geometry.points = pointcloud.points
+    geometry.colors = pointcloud.colors
+    geometry.points.extend(pointcloud2.points)
+    geometry.colors.extend(pointcloud2.colors)
+
+
+    visual.update_geometry(geometry)
+    visual.poll_events()
+    visual.update_renderer()
+
+    print("looping")
+
+    #vis.draw_geometries([geometry])
+
+rs1.stop_capture()
 
