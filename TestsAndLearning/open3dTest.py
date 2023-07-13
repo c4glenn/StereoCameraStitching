@@ -39,8 +39,6 @@ cam1_extrinsic = np.array([
     [0, 0, 0, 1]
 ])
 
-def dh_param_to_transform(theta, alpha, r, d)
-
 cam2_extrinsic = np.array([
     [np.cos(np.pi), -np.sin(np.pi), 0, -.5],
     [np.sin(np.pi), np.cos(np.pi), 0, 0],
