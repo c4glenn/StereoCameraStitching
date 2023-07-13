@@ -20,13 +20,11 @@ with open("realsenseConfig copy.json") as cf:
 
 
 rs1 = o3d.t.io.RealSenseSensor()
-rs1.init_sensor(rs1_cfg, sensor_index=0)
+rs1.init_sensor(rs1_cfg)
 rs1.start_capture(False)
 
 rs2 = o3d.t.io.RealSenseSensor()
 rs2.init_sensor(rs2_cfg)
-print(rs1.get_metadata(), rs2.get_metadata())
-
 rs2.start_capture(False)
 
 camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
@@ -34,15 +32,31 @@ camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraInt
 visual = vis.Visualizer()
 visual.create_window()
 
-def createPointCloud(rgbdIM):
+cam1_extrinsic = np.array([
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
+])
+
+def dh_param_to_transform(theta, alpha, r, d)
+
+cam2_extrinsic = np.array([
+    [np.cos(np.pi), -np.sin(np.pi), 0, -.5],
+    [np.sin(np.pi), np.cos(np.pi), 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
+])
+
+def createPointCloud(rgbdIM, extrinsic):
     rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color=rgbdIM.color.to_legacy(), depth=rgbdIM.depth.to_legacy(), convert_rgb_to_intensity=False)
-    return o3d.geometry.PointCloud.create_from_rgbd_image(image=rgbd, intrinsic=camera_intrinsic, extrinsic=np.identity(4))
+    return o3d.geometry.PointCloud.create_from_rgbd_image(image=rgbd, intrinsic=camera_intrinsic, extrinsic=extrinsic)
 
 
 im_rgbd1 = rs1.capture_frame(True, True)
 im_rgbd2 = rs2.capture_frame(True, True)
-pointcloudCam1 = createPointCloud(im_rgbd1)
-pointcloudCam2 = createPointCloud(im_rgbd2)
+pointcloudCam1 = createPointCloud(im_rgbd1, cam1_extrinsic)
+pointcloudCam2 = createPointCloud(im_rgbd2, cam2_extrinsic)
 geometry = pointcloudCam1
 
 geometry.points.extend(pointcloudCam2.points)
@@ -56,8 +70,8 @@ while True:
     #visual.remove_geometry(geometry, False)
     im = rs1.capture_frame(True, True)
     im2 = rs2.capture_frame(True, True)
-    pointcloud = createPointCloud(im)
-    pointcloud2 = createPointCloud(im2)
+    pointcloud = createPointCloud(im, cam1_extrinsic)
+    pointcloud2 = createPointCloud(im2, cam2_extrinsic)
     
     geometry.points = pointcloud.points
     geometry.colors = pointcloud.colors
@@ -68,8 +82,6 @@ while True:
     visual.update_geometry(geometry)
     visual.poll_events()
     visual.update_renderer()
-
-    print("looping")
 
     #vis.draw_geometries([geometry])
 
