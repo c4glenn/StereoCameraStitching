@@ -2,13 +2,28 @@ import json
 import open3d as o3d
 import open3d.visualization as vis
 import numpy as np
+from numpy import sin, cos, pi
 import datetime
 from enum import Enum
+from dataclasses import dataclass
 
+@dataclass
+class Pose:
+    x: float = 0
+    y: float = 0
+    z: float = 0
+    rX: float = 0
+    rY: float = 0
+    rZ: float = 0
 
 DEFAULT_INTRINSIC = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
 NUM_CAMERAS = 2
+TRANSLATIONAL_SCALE = 1
 
+CAMERA_POSES = [
+    Pose(x=0, y=0, z=0, rX=0, rY=0, rZ=0),
+    Pose(x=0, y=0, z=0, rX=0, rY=-0.872665, rZ=pi)
+]
 
 class Visualizer():
     def do_once(self, geometry):
@@ -52,8 +67,8 @@ class RealSenseCamera:
 
     def create_config_with_file(filename:str) -> o3d.t.io.RealSenseSensorConfig:
         with open(filename) as config_file:
-            return o3d.t.io.RealSenseSenseorConfig(json.load(config_file))
-        
+            return o3d.t.io.RealSenseSensorConfig(json.load(config_file))
+
     def create_config_with_serial(serial:str) -> o3d.t.io.RealSenseSensorConfig:
         with open("defaultRealSenseConfig.json") as config_file:
             config_settings = json.load(config_file)
@@ -63,6 +78,21 @@ class RealSenseCamera:
     def create_config_with_index(index:int) -> o3d.t.io.RealSenseSensorConfig:
         devices = o3d.t.io.RealSenseSensor.enumerate_devices()
         return RealSenseCamera.create_config_with_serial(devices[index].serial)
+    
+    def create_extrinsic(pose: Pose) -> np.array:
+        ca, a, sa = cos(pose.rX), pose.rX, sin(pose.rX)
+        cb, b, sb = cos(pose.rY), pose.rY, sin(pose.rY)
+        cc, c, sc = cos(pose.rZ), pose.rZ, sin(pose.rZ)
+        x = pose.x * TRANSLATIONAL_SCALE
+        y = pose.y * TRANSLATIONAL_SCALE
+        z = pose.z * TRANSLATIONAL_SCALE
+        return np.array([
+            [cb*cc, -cb*sc, sb, x*cb*cc - y*cb*sc],
+            [sa*sb*cc + ca*sc, ca*cc-sa*sb*sc, -sa*cb, x*(sa*sb*cc+ca*sc) + y*(ca*cc-sa*sb*sc) - z*(sa*cb)],
+            [sa*sc-ca*sb*cc, ca*sb*sc+sa*cc, ca*cb, x*(sa*sc-ca*sb*cc)+y*(ca*sb*sc+sa*cc) + z*(ca*cb)],
+            [0, 0, 0, 1]
+        ])
+        pass
     
 class RectificationMethod(Enum):
     EXTRINSIC = 0
@@ -96,16 +126,20 @@ class Rectifier():
         return main_pointcloud
 
 
-
-
-if __name__ == "__main__":
-    visualizer = Visualizer()
-    rectifier = Rectifier(RectificationMethod.EXTRINSIC)
+def create_cameras() -> list[RealSenseCamera]:
     cameras:list[RealSenseCamera] = []
     for i in range(NUM_CAMERAS):
         config = RealSenseCamera.create_config_with_index(i)
-        cameras.append(RealSenseCamera(config, DEFAULT_INTRINSIC, np.identity(4)))
+        extrinsic = RealSenseCamera.create_extrinsic(CAMERA_POSES[i])
+        cameras.append(RealSenseCamera(config, DEFAULT_INTRINSIC, extrinsic))
         cameras[i].start_capture(False)
+    
+    return cameras
+
+def main():
+    visualizer = Visualizer()
+    rectifier = Rectifier(RectificationMethod.EXTRINSIC)
+    cameras = create_cameras()
     
     geo = rectifier.rectify([x.generate_point_cloud() for x in cameras])
     old_geo = geo
@@ -118,3 +152,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         for cam in cameras:
             cam.stop()
+
+
+
+if __name__ == "__main__":
+    main()
