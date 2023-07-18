@@ -15,9 +15,9 @@ def main():
 
     while True:
         frames = rsm.get_frames()
-        frames = [cv2.resize(frame, dsize=(480,270)) for frame in frames]
         frames = [frames[0], frames[1], frames[2], frames[3]]
-        cv2.imshow("img", np.hstack(frames))
+        displayFrames = [cv2.resize(frame, dsize=(480,270)) for frame in frames]
+        cv2.imshow("img", np.hstack(displayFrames))
         k = cv2.waitKey(1)
         if(k==ord("q")): break
         if(k==ord("s")):
