@@ -1,5 +1,6 @@
 import pyrealsense2 as rs
 import numpy as np
+import cv2
 
 
 class Device:
@@ -24,6 +25,9 @@ class RealsenseManager:
         self.enabled_devices: dict[int, Device] = {}
 
     def rectify(self, frame, serial, type, index):
+        if(int(serial) == 927522071127):
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+
         return frame
 
 
@@ -57,21 +61,25 @@ class RealsenseManager:
                         else:
                             frame = frameset.first_or_default(stream.stream_type())
                             key_ = (stream.stream_type(), 0)
-                        frames[serial][key_] = self.rectify(frame, serial, stream.stream_type(), stream.stream_index())
+                        frames[serial][key_] = self.rectify(np.asanyarray(frame.get_data()), serial, stream.stream_type(), stream.stream_index())
         cleanFrames = []
 
         for serial, key in frames.items():
             for k, frame in key.items():
-                cleanFrames.append(np.asanyarray(frame.get_data()))
+                cleanFrames.append(frame)
 
         return cleanFrames
 
     
 if __name__ == "__main__":
-    rsm = RealsenseManager(None, False, True)
+    rsm = RealsenseManager(None, False, False)
     rsm.enableDevices()
-    frame = rsm.get_frames()
+    while True:
+        frame = rsm.get_frames()
 
-    print(frame)
+        cv2.imshow("img", frame[0])
+        k = cv2.waitKey(1)
+
+        if(k == ord("q")): break
 
 
