@@ -55,11 +55,12 @@ def calibrate_single_camera(number, intrinsic:bool=True):
     filename = f'Calibration/images/{"Intrinsic" if intrinsic else "StereoPairs"}/{number}/*'
 
     images = glob.glob(filename)
-
-    for fname in images:
-        objpoints, imgpoints = process_frame(fname, objpoints, imgpoints, objp)    
+    last_ret = 0
 
     h,w = cv2.imread(images[0]).shape[:2]
+
+    for fname in images:
+        objpoints, imgpoints = process_frame(fname, objpoints, imgpoints, objp)
 
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (h,w), None, None)
 
@@ -118,6 +119,7 @@ def calibrate_pair(number1, number2):
 
     retS, new_mtxL, distL, new_mtxR, distR, Rot, Trns, Emat, Fmat = cv2.stereoCalibrate(obj_pts, imgPointsL, imgPointsR, new_mtxL, distL, new_mtxR, distR, (w, h), criteria=criteria_stereo, flags=flags)
 
+    print(f"stero rsme:{retS}")
     rectify_scale= 1
     rect_l, rect_r, proj_mat_l, proj_mat_r, Q, roiL, roiR= cv2.stereoRectify(new_mtxL, distL, new_mtxR, distR, (h, w), Rot, Trns, rectify_scale,(0,0))
 
