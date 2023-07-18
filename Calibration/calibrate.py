@@ -121,12 +121,12 @@ def calibrate_pair(number1, number2):
 
     print(f"stero rsme:{retS}")
     rectify_scale= 1
-    rect_l, rect_r, proj_mat_l, proj_mat_r, Q, roiL, roiR= cv2.stereoRectify(new_mtxL, distL, new_mtxR, distR, (h, w), Rot, Trns, rectify_scale,(0,0))
+    rect_l, rect_r, proj_mat_l, proj_mat_r, Q, roiL, roiR= cv2.stereoRectify(new_mtxL, distL, new_mtxR, distR, imgL_gray.shape[::-1],Rot, Trns, rectify_scale,(0,0))
 
     Left_Stereo_Map= cv2.initUndistortRectifyMap(new_mtxL, distL, rect_l, proj_mat_l,
-                                            (h,w), cv2.CV_16SC2)
+                                            imgL_gray.shape[::-1], cv2.CV_16SC2)
     Right_Stereo_Map= cv2.initUndistortRectifyMap(new_mtxR, distR, rect_r, proj_mat_r,
-                                            (h,w), cv2.CV_16SC2)
+                                            imgR_gray.shape[::-1], cv2.CV_16SC2)
     
     print("Saving paraeters ......")
     cv_file = cv2.FileStorage("improved_params2.xml", cv2.FILE_STORAGE_APPEND)
@@ -134,9 +134,10 @@ def calibrate_pair(number1, number2):
     cv_file.write(f"M{number1}-{number2}L_Stereo_Map_y",Left_Stereo_Map[1])
     cv_file.write(f"M{number1}-{number2}R_Stereo_Map_x",Right_Stereo_Map[0])
     cv_file.write(f"M{number1}-{number2}R_Stereo_Map_y",Right_Stereo_Map[1])
+    cv_file.write(f"M{number1}-{number2}Q",Q)
     cv_file.release()
 
 if __name__ == "__main__":
-    calibrate_pair(0,1)
-    calibrate_pair(1,2)
+    calibrate_pair(1,0)
+    calibrate_pair(0,2)
     calibrate_pair(2,3)
