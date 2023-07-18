@@ -66,9 +66,10 @@ class RealsenseManager:
 
         for serial, key in frames.items():
             for k, frame in key.items():
-                cleanFrames.append(frame)
+                cleanFrames.append((f"{serial}{k[1]}", frame))
+        cleanFrames.sort(key=lambda x: x[0])
 
-        return cleanFrames
+        return [f[1] for f in cleanFrames]
 
     
 if __name__ == "__main__":
