@@ -22,9 +22,14 @@ def main():
     while True:
         frames = rsm.get_frames()
 
-        f0 = cv2.remap(frames[0], m01leftMapx, m01leftMapY, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
-        f1 =  cv2.remap(frames[1], m01RightMapx, m01RightMapy, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
+        f0 = cv2.remap(frames[0], m01leftMapx, m01leftMapY, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+        f1 =  cv2.remap(frames[1], m01RightMapx, m01RightMapy, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
 
+        cv2.imshow("img", frames[0])
+        cv2.imshow("rectified", f0)
+        k = cv2.waitKey(1)
+
+        if(k==ord('q')):break
 
 
 
