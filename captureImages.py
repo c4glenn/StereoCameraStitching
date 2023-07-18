@@ -4,7 +4,7 @@ import cv2
 from realSenseWrapper import RealsenseManager
 import datetime
 
-INTRINSIC = True
+INTRINSIC = False
 
 filename = f"Calibration/images/{'Intrinsic' if INTRINSIC else 'StereoPairs'}/"
 
