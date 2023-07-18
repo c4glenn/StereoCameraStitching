@@ -10,7 +10,7 @@ class Device:
         self.product_line = product_line
 
 class RealsenseManager:
-    def __init__(self, calibration, infrared:bool=False, color:bool=False) -> None:
+    def __init__(self, calibration=None, infrared:bool=False, color:bool=False) -> None:
         self.calibration = calibration
         self.infrared = infrared
         self.color = color
