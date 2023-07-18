@@ -1,4 +1,5 @@
 import pyrealsense2 as rs
+import numpy as np
 
 
 class Device:
@@ -61,7 +62,7 @@ class RealsenseManager:
 
         for serial, key in frames.items():
             for k, frame in key.items():
-                cleanFrames.append(frame)
+                cleanFrames.append(np.asanyarray(frame.get_data()))
 
         return cleanFrames
 
