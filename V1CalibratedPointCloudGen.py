@@ -1,9 +1,12 @@
 from realSenseWrapper import RealsenseManager
+from V0PointCloudGen import Visualizer
 
 import cv2
 import numpy as np
 
 import open3d as o3d
+import open3d.visualization as vis
+
 
 
 
@@ -22,60 +25,31 @@ def nothing(x):
     pass
 
 
-
-def main():
-
-    cv2.namedWindow('disp',cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('disp',600,600)
+def setup_openCV(name):
+    cv2.namedWindow('disp'+name,cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('disp'+name,600,600)
     
-    cv2.createTrackbar('numDisparities','disp',1,17,nothing)
-    cv2.createTrackbar('blockSize','disp',5,50,nothing)
-    cv2.createTrackbar('preFilterType','disp',1,1,nothing)
-    cv2.createTrackbar('preFilterSize','disp',2,25,nothing)
-    cv2.createTrackbar('preFilterCap','disp',5,62,nothing)
-    cv2.createTrackbar('textureThreshold','disp',10,100,nothing)
-    cv2.createTrackbar('uniquenessRatio','disp',15,100,nothing)
-    cv2.createTrackbar('speckleRange','disp',0,100,nothing)
-    cv2.createTrackbar('speckleWindowSize','disp',3,25,nothing)
-    cv2.createTrackbar('disp12MaxDiff','disp',5,25,nothing)
-    cv2.createTrackbar('minDisparity','disp',5,25,nothing)
+    cv2.createTrackbar('numDisparities','disp'+name,5,17,nothing)
+    cv2.createTrackbar('blockSize','disp'+name,7,50,nothing)
+    cv2.createTrackbar('preFilterType','disp'+name,0,1,nothing)
+    cv2.createTrackbar('preFilterSize','disp'+name,3,25,nothing)
+    cv2.createTrackbar('preFilterCap','disp'+name,62,62,nothing)
+    cv2.createTrackbar('textureThreshold','disp'+name,45,100,nothing)
+    cv2.createTrackbar('speckleWindowSize','disp'+name,0,25,nothing)
+    cv2.createTrackbar('disp12MaxDiff','disp'+name,16,25,nothing)
+    cv2.createTrackbar('minDisparity','disp'+name,7,25,nothing)
 
 
-    rsm = RealsenseManager()
-    rsm.enableDevices()
-    m01leftMapx, m01leftMapY, m01RightMapx, m01RightMapy, m01Q = load_stereo_coefficients(1, 0)
-    m12leftMapx, m12leftMapY, m12RightMapx, m12RightMapy, m12Q = load_stereo_coefficients(0, 2)
-    m23leftMapx, m23leftMapY, m23RightMapx, m23RightMapy, m23Q = load_stereo_coefficients(2, 3)
-
-    current = 0
-
-    stereo = cv2.StereoBM_create()
-
-    while True:
-        frames = rsm.get_frames()
-
-        f0 =  cv2.remap(frames[1], m01leftMapY, m01leftMapx, interpolation=cv2.INTER_CUBIC, borderMode=cv2.BORDER_TRANSPARENT)
-        f1 =  cv2.remap(frames[0], m01RightMapx, m01RightMapy, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-        f2 =  cv2.remap(frames[0], m12leftMapx, m12leftMapY, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-        f3 =  cv2.remap(frames[2], m12RightMapx, m12RightMapy, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-        f4 =  cv2.remap(frames[2], m23leftMapx, m23leftMapY, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-        f5 =  cv2.remap(frames[3], m23RightMapx, m23RightMapy, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-        rectified = [f0, f1, f2, f3, f4, f5]
-
-        Left_nice = f0
-        Right_nice = f1
-
-        numDisparities = cv2.getTrackbarPos('numDisparities','disp')*16
-        blockSize = cv2.getTrackbarPos('blockSize','disp')*2 + 5
-        preFilterType = cv2.getTrackbarPos('preFilterType','disp')
-        preFilterSize = cv2.getTrackbarPos('preFilterSize','disp')*2 + 5
-        preFilterCap = cv2.getTrackbarPos('preFilterCap','disp')
-        textureThreshold = cv2.getTrackbarPos('textureThreshold','disp')
-        uniquenessRatio = cv2.getTrackbarPos('uniquenessRatio','disp')
-        speckleRange = cv2.getTrackbarPos('speckleRange','disp')
-        speckleWindowSize = cv2.getTrackbarPos('speckleWindowSize','disp')*2
-        disp12MaxDiff = cv2.getTrackbarPos('disp12MaxDiff','disp')
-        minDisparity = cv2.getTrackbarPos('minDisparity','disp')
+def updateOpenCV(stereo, left_nice, right_nice, name):
+        numDisparities = cv2.getTrackbarPos('numDisparities','disp'+name)*16
+        blockSize = cv2.getTrackbarPos('blockSize','disp'+name)*2 + 5
+        preFilterType = cv2.getTrackbarPos('preFilterType','disp'+name)
+        preFilterSize = cv2.getTrackbarPos('preFilterSize','disp'+name)*2 + 5
+        preFilterCap = cv2.getTrackbarPos('preFilterCap','disp'+name)
+        textureThreshold = cv2.getTrackbarPos('textureThreshold','disp'+name)
+        speckleWindowSize = cv2.getTrackbarPos('speckleWindowSize','disp'+name)*2
+        disp12MaxDiff = cv2.getTrackbarPos('disp12MaxDiff','disp'+name)
+        minDisparity = cv2.getTrackbarPos('minDisparity','disp'+name)
      
 
         stereo.setNumDisparities(numDisparities)
@@ -87,6 +61,10 @@ def main():
         stereo.setSpeckleWindowSize(speckleWindowSize)
         stereo.setDisp12MaxDiff(disp12MaxDiff)
         stereo.setMinDisparity(minDisparity)
+        return stereo, calculate_disparity(stereo, left_nice, right_nice, minDisparity, numDisparities)
+
+
+def calculate_disparity(stereo, Left_nice, Right_nice, minDisparity, numDisparities):
             # Calculating disparity using the StereoBM algorithm
         disparity = stereo.compute(Left_nice,Right_nice)
         # NOTE: Code returns a 16bit signed single channel image,
@@ -99,20 +77,62 @@ def main():
         # Scaling down the disparity values and normalizing them 
         disparity = (disparity/16.0 - minDisparity)/numDisparities
 
-        point_cloud = cv2.reprojectImageTo3D(disparity, m01Q)
-        point_cloud = point_cloud.reshape(-1, point_cloud.shape[-1])
-        point_cloud = point_cloud[~np.isinf(point_cloud).any(axis=1)]
+        return disparity
 
 
-        pcl = o3d.geometry.PointCloud()
-        pcl.points = o3d.utility.Vector3dVector(point_cloud)
-        o3d.visualization.draw_geometries([pcl])
+def pointCloudFromDisparity(disparity, q):
+    pcl = o3d.geometry.PointCloud()
+    point_cloud = cv2.reprojectImageTo3D(disparity, q, handleMissingValues=False)
+    point_cloud = point_cloud.reshape(-1, point_cloud.shape[-1])
+    print(point_cloud)
+    pcl.points = o3d.utility.Vector3dVector(point_cloud)
+    pcl.paint_uniform_color([1, 0.706, 0])
 
-    
-        # Displaying the disparity map
-        cv2.imshow("disp",disparity)
-    
-        # Close window using esc key
+    return pcl
+
+def getRectifiedFrames(rsm, M10, M02, M23):
+    frames = rsm.get_frames()
+    m01leftMapx, m01leftMapY, m01RightMapx, m01RightMapy, m01Q = M10
+    m12leftMapx, m12leftMapY, m12RightMapx, m12RightMapy, m12Q = M02
+    m23leftMapx, m23leftMapY, m23RightMapx, m23RightMapy, m23Q = M23
+
+    f0 =  cv2.remap(frames[1], m01leftMapY, m01leftMapx, interpolation=cv2.INTER_CUBIC, borderMode=cv2.BORDER_TRANSPARENT)
+    f1 =  cv2.remap(frames[0], m01RightMapx, m01RightMapy, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+    f2 =  cv2.remap(frames[0], m12leftMapx, m12leftMapY, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+    f3 =  cv2.remap(frames[2], m12RightMapx, m12RightMapy, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+    f4 =  cv2.remap(frames[2], m23leftMapx, m23leftMapY, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+    f5 =  cv2.remap(frames[3], m23RightMapx, m23RightMapy, interpolation=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+    rectified = [f0, f1, f2, f3, f4, f5]
+    return rectified
+
+
+
+def main():
+    rsm = RealsenseManager()
+    rsm.enableDevices()
+
+    M10 = load_stereo_coefficients(1, 0)
+    M02 = load_stereo_coefficients(0, 2)
+    M23 = load_stereo_coefficients(2, 3)        # Displaying the disparity map
+
+
+    stereo = cv2.StereoBM_create()
+    setup_openCV("M10")
+
+    frames = getRectifiedFrames(rsm, M10, M02, M23)
+    stereo, disp = updateOpenCV(stereo, frames[0], frames[1], "M10")
+
+    geometry = pointCloudFromDisparity(disp, M10[4])
+
+    v = Visualizer()
+    v.do_once(geometry)
+    while True:
+        frames = getRectifiedFrames(rsm, M10, M02, M23)
+        stereo, disp = updateOpenCV(stereo, frames[0], frames[1], "M10")
+        geometry.points = pointCloudFromDisparity(disp, M10[4]).points
+        cv2.imshow("dispM10",disp)
+        v.do_each_loop(geometry)    
+        #Close window using esc key
         if cv2.waitKey(1) == 27:
             break
 
