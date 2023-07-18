@@ -1,6 +1,7 @@
 import cv2
 import glob
 import numpy as np
+import json
 
 
 def getImages(filename) -> list[cv2.Mat]:
@@ -40,7 +41,7 @@ def calibrateSingleCam(images):
             corners = cv2.cornerSubPix(gray, corners, conv_size, (-1, -1), criteria)
             cv2.drawChessboardCorners(frame, (rows, columns), corners, ret)
             cv2.imshow('IMG', frame)
-            k = cv2.waitKey(500)
+            k = cv2.waitKey(1)
 
             objpoints.append(objp)
             imgpoints.append(corners)
@@ -57,15 +58,28 @@ def calibrateSingleCam(images):
 
 
 if __name__ == "__main__":
+    calibrations = {}
     L1 = getImages("Calibration/images/927522071127-L/*")
     print("L1 ***************************************")
     mtx, dist = calibrateSingleCam(L1)
+    calibrations["927522071127-L"] = (mtx.tolist(), dist.tolist())
+
     R1 = getImages("Calibration/images/927522071127-R/*")
     print("R1 ***************************************")
     mtx, dist = calibrateSingleCam(R1)
+    calibrations["927522071127-R"] = (mtx.tolist(), dist.tolist())
+
     L2 = getImages("Calibration/images/927522073022-L/*")
     print("L2 ***************************************")
     mtx, dist = calibrateSingleCam(L2)
+    calibrations["927522073022-L"] = (mtx.tolist(), dist.tolist())
+
+
     R2 = getImages("Calibration/images/927522073022-R/*")
     print("R2 ***************************************")
     mtx, dist = calibrateSingleCam(R2)
+    calibrations["927522073022-R"] = (mtx.tolist(), dist.tolist())
+
+    with open("Calibration/singleCamCalibration.json", "w") as f:
+        f.write(json.dumps(calibrations))
+
