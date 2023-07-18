@@ -53,15 +53,28 @@ for device in context.devices:
 
     sensor = pipeline_profile.get_device().first_depth_sensor()
     if sensor.supports(rs.option.emitter_enabled):
-        sensor.set_option(rs.option.emitter_enabled, 1)
+        sensor.set_option(rs.option.emitter_enabled, 0)
 
     enabled_devices[serial] = Device(pipeline, pipeline_profile, product)
+
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER ,30, 0.001)
+
+rows = 5
+columns = 7
+world_scaling = 2.54 # ish CM grid squares
+
+objp = np.zeros((rows*columns, 3), np.float32)
+objp[:,:2] = np.mgrid[0:rows,0:columns].T.reshape(-1, 2)
+objp = world_scaling * objp
+
 
 
 while True:
     multi_cam_frames = get_frames()
     cols = []
     allImages = {}
+    width = np.asanyarray(list(list(multi_cam_frames.values())[0].values())[0].get_data()).shape[1]
+    height = np.asanyarray(list(list(multi_cam_frames.values())[0].values())[0].get_data()).shape[0]
     for cam, frames in multi_cam_frames.items():
         images = []
         for info, frame in frames.items():
@@ -72,7 +85,20 @@ while True:
                 image = cv2.resize(image, dsize=(480, 270), interpolation=cv2.INTER_AREA)
             if(int(cam[0]) == 927522071127):
                 image = cv2.rotate(image, rotateCode=cv2.ROTATE_180)
-            images.append(image)
+            
+
+            gray = None
+            gray = cv2.copyTo(image, None, gray)
+
+            ret, corners = cv2.findChessboardCorners(gray, (rows, columns), None)
+
+            if(ret==True):
+                conv_size = (11, 11)
+
+                corners = cv2.cornerSubPix(gray, corners, conv_size, (-1, -1), criteria)
+                cv2.drawChessboardCorners(gray, (rows, columns), corners, ret)
+
+            images.append(gray)
             allImages[f"{cam[0]}-{'L' if info[1] == 1 else 'R'}"] = image
         cols.append(np.hstack(images))
     
@@ -85,6 +111,10 @@ while True:
         break
     if(key == ord('s')):
         time = datetime.datetime.now().timestamp()
-        os.mkdir(f"Calibration/images/{time}")
         for info, image in allImages.items():
-            cv2.imwrite(f"Calibration/images/{time}/{info}.jpg", image)
+            try:
+                os.mkdir(f"Calibration/images/{info}")
+            except FileExistsError:
+                pass
+
+            cv2.imwrite(f"Calibration/images/{info}/{time}.jpg", image)
