@@ -87,7 +87,7 @@ def pointCloudFromDisparity(disparity, q):
     h, w = disparity.shape[:2]
     f=.8*w
     Q = np.float32([[1, 0, 0,      0],
-                    [0,-1, 0,      0],
+                    [0,--1, 0,      0],
                     [0, 0, f*0.05, 0],
                     [0, 0, 1,      0]])
     pcl = o3d.geometry.PointCloud()
@@ -95,9 +95,25 @@ def pointCloudFromDisparity(disparity, q):
 
     mask = disparity > disparity.min()
 
-    point_cloud = cv2.reprojectImageTo3D(disparity, q)
+    points = []
+
+    for y, row in enumerate(disparity):
+        for x, value in enumerate(row):
+            vecTemp = np.array([x, y, value, 1])
+            vecTemp = q.dot(vecTemp)
+            #print(vecTemp)
+            vecTemp /= vecTemp[3]
+            points.append(np.array([vecTemp[0], vecTemp[1], vecTemp[2]]))
+    
+    point_cloudGen = cv2.reprojectImageTo3D(disparity, q)
+    point_cloudGen = point_cloudGen.reshape(-1, 3)
+
+    
+
+    point_cloud = np.array(points)
     cv2.imshow("img", point_cloud)
-    point_cloud = point_cloud.reshape(-1, 3)
+    #print(point_cloud.shape)
+    #print(point_cloud.shape)
     point_cloud = point_cloud[~np.isinf(point_cloud).any(axis=1)]
 
     
@@ -108,11 +124,11 @@ def pointCloudFromDisparity(disparity, q):
    
     #point_cloud = point_cloud[mask]
 
-    print(point_cloud, len(point_cloud), len(point_cloud[0]))
+    #print(point_cloud, len(point_cloud), len(point_cloud[0]))
 
     pcl.points = o3d.utility.Vector3dVector(point_cloud)
     
-    print(np.asarray(pcl.points), len(pcl.points))
+    #print(np.asarray(pcl.points), len(pcl.points))
     pcl.paint_uniform_color([1, 0.706, 0])
 
     return pcl
@@ -174,6 +190,8 @@ def main():
     v.do_once(geometry)
 
     while True:
+
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~ LOOP ~~~~~~~~~~~~~~~~~~~~~~")
         frames = getRectifiedFrames(rsm, M10, M02, M23)
         stereo, disp = updateOpenCV(stereo, frames[0], frames[1], "M10")
         points = cv2.reprojectImageTo3D(disp, M10[4])
