@@ -6,6 +6,7 @@ from numpy import sin, cos, pi
 import datetime
 from enum import Enum
 from dataclasses import dataclass
+import cv2
 
 @dataclass
 class Pose:
@@ -38,13 +39,13 @@ class Visualizer():
         self.controller.poll_events()
         self.controller.update_renderer()
 
-
 class RealSenseCamera:
     def __init__(self, config:o3d.t.io.RealSenseSensorConfig, intrinsic, extrinsic) -> None:
         self.config = config
         self.intrinsic = intrinsic
         self.extrinsic = extrinsic
         self.capturing = False
+        self.count = 0
 
         self.cam = o3d.t.io.RealSenseSensor()
         self.cam.init_sensor(self.config, filename=f"Saves/{self.config}-{datetime.datetime.now()}")
@@ -61,8 +62,19 @@ class RealSenseCamera:
             raise RuntimeError("Must start capture before generating pointclouds")
         capture = self.cam.capture_frame(True, True)
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(capture.color.to_legacy(), capture.depth.to_legacy(), convert_rgb_to_intensity=False)
-        return o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, self.intrinsic, self.extrinsic)
-    
+        point_cloud = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, self.intrinsic, self.extrinsic)
+        a = o3d.geometry.PointCloud()
+        points = np.asarray(point_cloud.points)
+
+        if self.count == 10:
+            np.save("pointcloudFromV0", points)
+
+        self.count += 1
+
+        a.points = o3d.utility.Vector3dVector(points)
+        a.colors = point_cloud.colors
+        return a
+
     ############### STATIC METHODS ############
 
     def create_config_with_file(filename:str) -> o3d.t.io.RealSenseSensorConfig:

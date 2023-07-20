@@ -8,7 +8,9 @@ import open3d as o3d
 import open3d.visualization as vis
 
 
+global count
 
+count = 0
 
 def load_stereo_coefficients(number1, number2):
     cv_file = cv2.FileStorage("improved_params2.xml", cv2.FileStorage_READ)
@@ -81,11 +83,36 @@ def calculate_disparity(stereo, Left_nice, Right_nice, minDisparity, numDisparit
 
 
 def pointCloudFromDisparity(disparity, q):
+    global count
+    h, w = disparity.shape[:2]
+    f=.8*w
+    Q = np.float32([[1, 0, 0,      0],
+                    [0,-1, 0,      0],
+                    [0, 0, f*0.05, 0],
+                    [0, 0, 1,      0]])
     pcl = o3d.geometry.PointCloud()
-    point_cloud = cv2.reprojectImageTo3D(disparity, q, handleMissingValues=False)
-    point_cloud = point_cloud.reshape(-1, point_cloud.shape[-1])
-    print(point_cloud)
+    disparity.astype(np.float32)
+
+    mask = disparity > disparity.min()
+
+    point_cloud = cv2.reprojectImageTo3D(disparity, q)
+    cv2.imshow("img", point_cloud)
+    point_cloud = point_cloud.reshape(-1, 3)
+    point_cloud = point_cloud[~np.isinf(point_cloud).any(axis=1)]
+
+    
+    if count == 10:
+        np.save("pointcloudFromV1", np.asarray(point_cloud))
+        print("saved")
+    count += 1 
+   
+    #point_cloud = point_cloud[mask]
+
+    print(point_cloud, len(point_cloud), len(point_cloud[0]))
+
     pcl.points = o3d.utility.Vector3dVector(point_cloud)
+    
+    print(np.asarray(pcl.points), len(pcl.points))
     pcl.paint_uniform_color([1, 0.706, 0])
 
     return pcl
@@ -105,6 +132,25 @@ def getRectifiedFrames(rsm, M10, M02, M23):
     rectified = [f0, f1, f2, f3, f4, f5]
     return rectified
 
+ply_header = '''ply
+format ascii 1.0
+element vertex %(vert_num)d
+property float x
+property float y
+property float z
+property uchar red
+property uchar green
+property uchar blue
+end_header
+'''
+
+def write_ply(fn, verts, colors):
+    verts = verts.reshape(-1, 3)
+    colors = colors.reshape(-1, 3)
+    verts = np.hstack([verts, colors])
+    with open(fn, 'wb') as f:
+        f.write((ply_header % dict(vert_num=len(verts))).encode('utf-8'))
+        np.savetxt(f, verts, fmt='%f %f %f %d %d %d ')
 
 
 def main():
@@ -126,17 +172,26 @@ def main():
 
     v = Visualizer()
     v.do_once(geometry)
+
     while True:
         frames = getRectifiedFrames(rsm, M10, M02, M23)
         stereo, disp = updateOpenCV(stereo, frames[0], frames[1], "M10")
-        geometry.points = pointCloudFromDisparity(disp, M10[4]).points
+        points = cv2.reprojectImageTo3D(disp, M10[4])
+        colors = cv2.cvtColor(frames[0], cv2.COLOR_BGR2RGB)
+
+        mask = disp > disp.min()
+
+        #write_ply(out_fn, out_points, out_colors)
+
+        point_cloud = pointCloudFromDisparity(disp, M10[4]).points
+        
+        geometry.points = point_cloud
         cv2.imshow("dispM10",disp)
-        v.do_each_loop(geometry)    
+
+        v.do_each_loop(geometry)
         #Close window using esc key
         if cv2.waitKey(1) == 27:
             break
-
-
 
 
 if __name__ == "__main__":
