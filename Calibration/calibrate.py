@@ -120,7 +120,7 @@ def calibrate_pair(number1, number2):
 
     print(f"stero rsme:{retS}")
     rectify_scale= 2.54
-    rect_l, rect_r, proj_mat_l, proj_mat_r, Q, roiL, roiR= cv2.stereoRectify(new_mtxL, distL, new_mtxR, distR, imgL_gray.shape[::-1],Rot, Trns, rectify_scale,(0,0))
+    rect_l, rect_r, proj_mat_l, proj_mat_r, Q, roiL, roiR= cv2.stereoRectify(new_mtxL, distL, new_mtxR, distR, imgL_gray.shape[::-1],Rot, Trns, rectify_scale,(0,0), flags=cv2.CALIB_ZERO_DISPARITY)
 
     Left_Stereo_Map= cv2.initUndistortRectifyMap(new_mtxL, distL, rect_l, proj_mat_l,
                                             imgL_gray.shape[::-1], cv2.CV_16SC2)

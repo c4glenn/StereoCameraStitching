@@ -56,10 +56,10 @@ def updateOpenCV(stereo, left_nice, right_nice, name):
 
         stereo.setNumDisparities(numDisparities)
         stereo.setBlockSize(blockSize)
-        stereo.setPreFilterType(preFilterType)
-        stereo.setPreFilterSize(preFilterSize)
+        #stereo.setPreFilterType(preFilterType)
+        #stereo.setPreFilterSize(preFilterSize)
         stereo.setPreFilterCap(preFilterCap)
-        stereo.setTextureThreshold(textureThreshold)
+        #stereo.setTextureThreshold(textureThreshold)
         stereo.setSpeckleWindowSize(speckleWindowSize)
         stereo.setDisp12MaxDiff(disp12MaxDiff)
         stereo.setMinDisparity(minDisparity)
@@ -72,7 +72,7 @@ def calculate_disparity(stereo, Left_nice, Right_nice, minDisparity, numDisparit
         # NOTE: Code returns a 16bit signed single channel image,
         # CV_16S containing a disparity map scaled by 16. Hence it 
         # is essential to convert it to CV_32F and scale it down 16 times.
-    
+            
         # Converting to float32 
         disparity = disparity.astype(np.float32)
     
@@ -87,31 +87,23 @@ def pointCloudFromDisparity(disparity, q):
     h, w = disparity.shape[:2]
     f=.8*w
     Q = np.float32([[1, 0, 0,      0],
-                    [0,--1, 0,      0],
+                    [0,-1, 0,      0],
                     [0, 0, f*0.05, 0],
                     [0, 0, 1,      0]])
+    
+
     pcl = o3d.geometry.PointCloud()
+
     disparity.astype(np.float32)
 
     mask = disparity > disparity.min()
+    print(q)
 
-    points = []
+    point_cloud = cv2.reprojectImageTo3D(disparity, q)
+    print(point_cloud.shape)
 
-    for y, row in enumerate(disparity):
-        for x, value in enumerate(row):
-            vecTemp = np.array([x, y, value, 1])
-            vecTemp = q.dot(vecTemp)
-            #print(vecTemp)
-            vecTemp /= vecTemp[3]
-            points.append(np.array([vecTemp[0], vecTemp[1], vecTemp[2]]))
-    
-    point_cloudGen = cv2.reprojectImageTo3D(disparity, q)
-    point_cloudGen = point_cloudGen.reshape(-1, 3)
+    point_cloud= point_cloud.reshape(-1, 3)
 
-    
-
-    point_cloud = np.array(points)
-    cv2.imshow("img", point_cloud)
     #print(point_cloud.shape)
     #print(point_cloud.shape)
     point_cloud = point_cloud[~np.isinf(point_cloud).any(axis=1)]
@@ -127,9 +119,9 @@ def pointCloudFromDisparity(disparity, q):
     #print(point_cloud, len(point_cloud), len(point_cloud[0]))
 
     pcl.points = o3d.utility.Vector3dVector(point_cloud)
+    print(pcl.has_colors())
     
     #print(np.asarray(pcl.points), len(pcl.points))
-    pcl.paint_uniform_color([1, 0.706, 0])
 
     return pcl
 
@@ -186,6 +178,8 @@ def main():
 
     geometry = pointCloudFromDisparity(disp, M10[4])
 
+    print(geometry.has_colors())
+
     v = Visualizer()
     v.do_once(geometry)
 
@@ -194,10 +188,6 @@ def main():
         print("~~~~~~~~~~~~~~~~~~~~~~~~~ LOOP ~~~~~~~~~~~~~~~~~~~~~~")
         frames = getRectifiedFrames(rsm, M10, M02, M23)
         stereo, disp = updateOpenCV(stereo, frames[0], frames[1], "M10")
-        points = cv2.reprojectImageTo3D(disp, M10[4])
-        colors = cv2.cvtColor(frames[0], cv2.COLOR_BGR2RGB)
-
-        mask = disp > disp.min()
 
         #write_ply(out_fn, out_points, out_colors)
 
