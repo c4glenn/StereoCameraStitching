@@ -108,8 +108,7 @@ def calibrate_pair(number1, number2):
             cv2.cornerSubPix(imgL_gray,cornersL,(11,11),(-1,-1),criteria)
             cv2.drawChessboardCorners(outputR,CHECKERBOARD,cornersR,retR)
             cv2.drawChessboardCorners(outputL,CHECKERBOARD,cornersL,retL)
-            cv2.imshow('cornersR',outputR)
-            cv2.imshow('cornersL',outputL)
+            cv2.imshow('img',np.hstack([outputL, outputR]))
             cv2.waitKey(10)
         
             imgPointsL.append(cornersL)
@@ -120,7 +119,7 @@ def calibrate_pair(number1, number2):
     retS, new_mtxL, distL, new_mtxR, distR, Rot, Trns, Emat, Fmat = cv2.stereoCalibrate(obj_pts, imgPointsL, imgPointsR, new_mtxL, distL, new_mtxR, distR, (w, h), criteria=criteria_stereo, flags=flags)
 
     print(f"stero rsme:{retS}")
-    rectify_scale= 1
+    rectify_scale= 2.54
     rect_l, rect_r, proj_mat_l, proj_mat_r, Q, roiL, roiR= cv2.stereoRectify(new_mtxL, distL, new_mtxR, distR, imgL_gray.shape[::-1],Rot, Trns, rectify_scale,(0,0))
 
     Left_Stereo_Map= cv2.initUndistortRectifyMap(new_mtxL, distL, rect_l, proj_mat_l,
