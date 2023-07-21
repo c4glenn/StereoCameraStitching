@@ -31,24 +31,18 @@ def setup_openCV(name):
     cv2.namedWindow('disp'+name,cv2.WINDOW_NORMAL)
     cv2.resizeWindow('disp'+name,600,600)
     
-    cv2.createTrackbar('numDisparities','disp'+name,5,17,nothing)
+    cv2.createTrackbar('numDisparities','disp'+name,2,17,nothing)
     cv2.createTrackbar('blockSize','disp'+name,7,50,nothing)
-    cv2.createTrackbar('preFilterType','disp'+name,0,1,nothing)
-    cv2.createTrackbar('preFilterSize','disp'+name,3,25,nothing)
-    cv2.createTrackbar('preFilterCap','disp'+name,62,62,nothing)
-    cv2.createTrackbar('textureThreshold','disp'+name,45,100,nothing)
+    cv2.createTrackbar('preFilterCap','disp'+name,24,62,nothing)
     cv2.createTrackbar('speckleWindowSize','disp'+name,0,25,nothing)
-    cv2.createTrackbar('disp12MaxDiff','disp'+name,16,25,nothing)
-    cv2.createTrackbar('minDisparity','disp'+name,7,25,nothing)
+    cv2.createTrackbar('disp12MaxDiff','disp'+name,9,25,nothing)
+    cv2.createTrackbar('minDisparity','disp'+name,5,25,nothing)
 
 
 def updateOpenCV(stereo, left_nice, right_nice, name):
         numDisparities = cv2.getTrackbarPos('numDisparities','disp'+name)*16
         blockSize = cv2.getTrackbarPos('blockSize','disp'+name)*2 + 5
-        preFilterType = cv2.getTrackbarPos('preFilterType','disp'+name)
-        preFilterSize = cv2.getTrackbarPos('preFilterSize','disp'+name)*2 + 5
         preFilterCap = cv2.getTrackbarPos('preFilterCap','disp'+name)
-        textureThreshold = cv2.getTrackbarPos('textureThreshold','disp'+name)
         speckleWindowSize = cv2.getTrackbarPos('speckleWindowSize','disp'+name)*2
         disp12MaxDiff = cv2.getTrackbarPos('disp12MaxDiff','disp'+name)
         minDisparity = cv2.getTrackbarPos('minDisparity','disp'+name)
@@ -56,10 +50,7 @@ def updateOpenCV(stereo, left_nice, right_nice, name):
 
         stereo.setNumDisparities(numDisparities)
         stereo.setBlockSize(blockSize)
-        #stereo.setPreFilterType(preFilterType)
-        #stereo.setPreFilterSize(preFilterSize)
         stereo.setPreFilterCap(preFilterCap)
-        #stereo.setTextureThreshold(textureThreshold)
         stereo.setSpeckleWindowSize(speckleWindowSize)
         stereo.setDisp12MaxDiff(disp12MaxDiff)
         stereo.setMinDisparity(minDisparity)
@@ -68,16 +59,16 @@ def updateOpenCV(stereo, left_nice, right_nice, name):
 
 def calculate_disparity(stereo, Left_nice, Right_nice, minDisparity, numDisparities):
             # Calculating disparity using the StereoBM algorithm
-        disparity = stereo.compute(Left_nice,Right_nice)
+        rawdisparity = stereo.compute(Left_nice,Right_nice).astype(np.float32)/16.0
         # NOTE: Code returns a 16bit signed single channel image,
         # CV_16S containing a disparity map scaled by 16. Hence it 
         # is essential to convert it to CV_32F and scale it down 16 times.
             
         # Converting to float32 
-        disparity = disparity.astype(np.float32)
+    
     
         # Scaling down the disparity values and normalizing them 
-        disparity = (disparity/16.0 - minDisparity)/numDisparities
+        disparity = (disparity - minDisparity)/numDisparities
 
         return disparity
 
@@ -88,8 +79,8 @@ def pointCloudFromDisparity(disparity, q):
     f=.8*w
     Q = np.float32([[1, 0, 0,      0],
                     [0,-1, 0,      0],
-                    [0, 0, f*0.05, 0],
-                    [0, 0, 1,      0]])
+                    [0, 0, f*0.05, 100],
+                    [0, 0, 0,      1]])
     
 
     pcl = o3d.geometry.PointCloud()
@@ -97,10 +88,8 @@ def pointCloudFromDisparity(disparity, q):
     disparity.astype(np.float32)
 
     mask = disparity > disparity.min()
-    print(q)
 
-    point_cloud = cv2.reprojectImageTo3D(disparity, q)
-    print(point_cloud.shape)
+    point_cloud = cv2.reprojectImageTo3D(disparity, Q)
 
     point_cloud= point_cloud.reshape(-1, 3)
 
@@ -119,8 +108,8 @@ def pointCloudFromDisparity(disparity, q):
     #print(point_cloud, len(point_cloud), len(point_cloud[0]))
 
     pcl.points = o3d.utility.Vector3dVector(point_cloud)
-    print(pcl.has_colors())
-    
+
+
     #print(np.asarray(pcl.points), len(pcl.points))
 
     return pcl
@@ -170,7 +159,7 @@ def main():
     M23 = load_stereo_coefficients(2, 3)        # Displaying the disparity map
 
 
-    stereo = cv2.StereoBM_create()
+    stereo = cv2.StereoSGBM_create()
     setup_openCV("M10")
 
     frames = getRectifiedFrames(rsm, M10, M02, M23)
@@ -191,7 +180,7 @@ def main():
 
         #write_ply(out_fn, out_points, out_colors)
 
-        point_cloud = pointCloudFromDisparity(disp, M10[4]).points
+        point_cloud = pointCloudFromDisparity(disp.copy(), M10[4]).points
         
         geometry.points = point_cloud
         cv2.imshow("dispM10",disp)

@@ -29,6 +29,7 @@ CAMERA_POSES = [
 class Visualizer():
     def do_once(self, geometry):
         self.controller = vis.Visualizer()
+        
         self.controller.create_window()
         self.controller.add_geometry(geometry)
         self.controller.poll_events()
