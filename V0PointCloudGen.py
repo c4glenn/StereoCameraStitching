@@ -29,7 +29,6 @@ CAMERA_POSES = [
 class Visualizer():
     def do_once(self, geometry):
         self.controller = vis.Visualizer()
-        
         self.controller.create_window()
         self.controller.add_geometry(geometry)
         self.controller.poll_events()
@@ -63,9 +62,11 @@ class RealSenseCamera:
             raise RuntimeError("Must start capture before generating pointclouds")
         capture = self.cam.capture_frame(True, True)
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(capture.color.to_legacy(), capture.depth.to_legacy(), convert_rgb_to_intensity=False)
+        print(np.asarray(rgbd_image))
         point_cloud = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, self.intrinsic, self.extrinsic)
         a = o3d.geometry.PointCloud()
         points = np.asarray(point_cloud.points)
+
 
         if self.count == 10:
             np.save("pointcloudFromV0", points)
@@ -170,3 +171,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    
