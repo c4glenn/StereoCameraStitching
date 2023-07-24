@@ -1,7 +1,9 @@
-import pyrealsense2 as rs
+#import pyrealsense2 as rs
 import numpy as np
 import cv2
 
+USECAMERA = False
+FILEPATH = ""
 
 class Device:
     def __init__(self, pipeline, pipeline_profile, product_line) -> None:
@@ -11,18 +13,21 @@ class Device:
 
 class RealsenseManager:
     def __init__(self, calibration=None, infrared:bool=False, color:bool=False) -> None:
-        self.calibration = calibration
-        self.infrared = infrared
-        self.color = color
-        
-        self.context = rs.context()
-        self.config = rs.config()
-        self.config.enable_stream(rs.stream.infrared, 1, 1280, 720, rs.format.y8, 6)
-        self.config.enable_stream(rs.stream.infrared, 2, 1280, 720, rs.format.y8, 6)
-        if color:
-            self.config.enable_stream(rs.stream.color, 1280, 720, rs.format.rgb8, 6)
-        
-        self.enabled_devices: dict[int, Device] = {}
+        if(USECAMERA):
+            self.calibration = calibration
+            self.infrared = infrared
+            self.color = color
+            
+            self.context = rs.context()
+            self.config = rs.config()
+            self.config.enable_stream(rs.stream.infrared, 1, 1280, 720, rs.format.y8, 6)
+            self.config.enable_stream(rs.stream.infrared, 2, 1280, 720, rs.format.y8, 6)
+            if color:
+                self.config.enable_stream(rs.stream.color, 1280, 720, rs.format.rgb8, 6)
+            
+            self.enabled_devices: dict[int, Device] = {}
+        else:
+            pass
 
     def rectify(self, frame, serial, type, index):
         if(int(serial) == 927522071127):
@@ -32,21 +37,30 @@ class RealsenseManager:
 
 
     def enableDevices(self):
-        for device in self.context.devices:
-            pipeline = rs.pipeline()
-            product = device.get_info(rs.camera_info.product_line)
-            serial = device.get_info(rs.camera_info.serial_number)
+        if USECAMERA:
+            for device in self.context.devices:
+                #pipeline = rs.pipeline()
+                #product = device.get_info(rs.camera_info.product_line)
+                #serial = device.get_info(rs.camera_info.serial_number)
 
-            self.config.enable_device(serial)
-            pipeline_profile = pipeline.start(self.config)
+                #self.config.enable_device(serial)
+                #pipeline_profile = pipeline.start(self.config)
 
-            sensor = pipeline_profile.get_device().first_depth_sensor()
-            if sensor.supports(rs.option.emitter_enabled):
-                sensor.set_option(rs.option.emitter_enabled, 1 if self.infrared else 0)
+                #sensor = pipeline_profile.get_device().first_depth_sensor()
+                #if sensor.supports(rs.option.emitter_enabled):
+                #    sensor.set_option(rs.option.emitter_enabled, 1 if self.infrared else 0)
 
-            self.enabled_devices[serial] = Device(pipeline, pipeline_profile, product)
-        
+                #self.enabled_devices[serial] = Device(pipeline, pipeline_profile, product)
+                pass
+            
     def get_frames(self) -> list:
+        if USECAMERA:
+            return self.get_cam_frames()
+        else:
+            return [cv2.imread("VideoForTests/frame1/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame2/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame3/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame4/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame5/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame0/1689969928.504082.jpg")]
+        
+            
+    def get_cam_frames(self) -> list:
         frames = {}
         while len(frames) < len(self.enabled_devices.items()):
             for serial, device in self.enabled_devices.items():
