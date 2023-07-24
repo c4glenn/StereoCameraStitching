@@ -62,7 +62,6 @@ pyrealsense2==2.54.1.5217
 python-dateutil==2.8.2
 pytz==2023.3
 PyYAML==6.0
-pyzed @ file:///tmp/selfgz357423/pyzed-3.8-cp310-cp310-linux_x86_64.whl
 pyzmq==25.1.0
 referencing==0.29.1
 requests==2.31.0
