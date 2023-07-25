@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 
 USECAMERA = False
-FILEPATH = ""
+FILEPATH = "1689969928.504082.jpg"
 
 class Device:
     def __init__(self, pipeline, pipeline_profile, product_line) -> None:
@@ -57,7 +57,7 @@ class RealsenseManager:
         if USECAMERA:
             return self.get_cam_frames()
         else:
-            return [cv2.imread("VideoForTests/frame1/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame2/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame3/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame4/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame5/1689969928.504082.jpg"), cv2.imread("VideoForTests/frame0/1689969928.504082.jpg")]
+            return [cv2.imread("VideoForTests/frame1/"+FILEPATH), cv2.imread("VideoForTests/frame2/"+FILEPATH), cv2.imread("VideoForTests/frame4/"+FILEPATH), cv2.imread("VideoForTests/frame5/"+FILEPATH), cv2.imread("VideoForTests/frame0/"+FILEPATH), cv2.imread("VideoForTests/frame3/"+FILEPATH)]
         
             
     def get_cam_frames(self) -> list:

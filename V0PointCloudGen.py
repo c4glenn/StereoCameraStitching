@@ -19,7 +19,7 @@ class Pose:
 
 DEFAULT_INTRINSIC = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
 NUM_CAMERAS = 2
-TRANSLATIONAL_SCALE = 1
+TRANSLATIONAL_SCALE = 25.4
 
 CAMERA_POSES = [
     Pose(x=0, y=0, z=0, rX=0, rY=0, rZ=0),
@@ -39,7 +39,7 @@ class Visualizer():
         self.controller.poll_events()
         self.controller.update_renderer()
 
-class RealSenseCamera:
+""" class RealSenseCamera:
     def __init__(self, config:o3d.t.io.RealSenseSensorConfig, intrinsic, extrinsic) -> None:
         self.config = config
         self.intrinsic = intrinsic
@@ -106,7 +106,7 @@ class RealSenseCamera:
             [sa*sc-ca*sb*cc, ca*sb*sc+sa*cc, ca*cb, x*(sa*sc-ca*sb*cc)+y*(ca*sb*sc+sa*cc) + z*(ca*cb)],
             [0, 0, 0, 1]
         ])
-        pass
+        pass """
     
 class RectificationMethod(Enum):
     EXTRINSIC = 0
@@ -139,7 +139,7 @@ class Rectifier():
         
         return main_pointcloud
 
-
+""" 
 def create_cameras() -> list[RealSenseCamera]:
     cameras:list[RealSenseCamera] = []
     for i in range(NUM_CAMERAS):
@@ -149,10 +149,10 @@ def create_cameras() -> list[RealSenseCamera]:
         cameras[i].start_capture(False)
     
     return cameras
-
+ """
 def main():
     visualizer = Visualizer()
-    rectifier = Rectifier(RectificationMethod.EXTRINSIC)
+    """ rectifier = Rectifier(RectificationMethod.EXTRINSIC)
     cameras = create_cameras()
     
     geo = rectifier.rectify([x.generate_point_cloud() for x in cameras])
@@ -166,7 +166,7 @@ def main():
     except KeyboardInterrupt:
         for cam in cameras:
             cam.stop()
-
+ """
 
 
 if __name__ == "__main__":
