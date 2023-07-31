@@ -44,14 +44,17 @@ class RealsenseManager:
 
     def enableDevices(self):
         if USECAMERA:
-            print("here")
             for device in self.context.devices:
+                device.hardware_reset()
                 pipeline = rs.pipeline()
+                
                 product = device.get_info(rs.camera_info.product_line)
                 serial = device.get_info(rs.camera_info.serial_number)
 
                 self.config.enable_device(serial)
                 pipeline_profile = pipeline.start(self.config)
+
+                print(self.context.sensors)
 
                 sensor = pipeline_profile.get_device().first_depth_sensor()
                 if sensor.supports(rs.option.emitter_enabled):
@@ -84,11 +87,12 @@ class RealsenseManager:
                         frame = frameset.get_infrared_frame(stream.stream_index())
                         key_ = (stream.stream_type(), stream.stream_index())
                     elif(stream.stream_type() == rs.stream.depth):
+                        frame = frameset.first_or_default(stream.stream_type())
                         if(setFrames == 1):
-                            self.depthFrames.append(frameset.first_or_default(stream.stream_type()))
+                            self.depthFrames.append(frame.get_data())
                         else:
-                            self.depthFrames = [frameset.first_or_default(stream.stream_type())]
-                        frame = self.depthFrames[len(self.depthFrames)-1]
+                            self.depthFrames = [frame.get_data()]
+                            setFrames = 1
                         key_ = (stream.stream_type(), 0)
                     else:
                         frame = frameset.first_or_default(stream.stream_type())
