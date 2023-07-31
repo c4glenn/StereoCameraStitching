@@ -12,22 +12,20 @@ class Device:
 
 def get_frames():
     frames = {}
-    while len(frames) < len(enabled_devices.items()):
-        for (serial, device) in enabled_devices.items():
-            streams = device.pipeline_profile.get_streams()
-            frameset = device.pipeline.poll_for_frames()
-            if(frameset.size() == len(streams)):
-                dev_info = (serial, device.product_line)
-                frames[dev_info] = {}
-
-                for stream in streams:
-                    if(rs.stream.infrared == stream.stream_type()):
-                        frame = frameset.get_infrared_frame(stream.stream_index())
-                        key_ = (stream.stream_type(), stream.stream_index())
-                    else:
-                        frame = frameset.first_or_default(stream.stream_type())
-                        key_ = (stream.stream_type(), 0)
-                    frames[dev_info][key_] = frame
+    for (serial, device) in enabled_devices.items():
+        streams = device.pipeline_profile.get_streams()
+        frameset = device.pipeline.wait_for_frames()
+        if(frameset.size() == len(streams)):
+            dev_info = (serial, device.product_line)
+            frames[dev_info] = {}
+            for stream in streams:
+                if(rs.stream.infrared == stream.stream_type()):
+                    frame = frameset.get_infrared_frame(stream.stream_index())
+                    key_ = (stream.stream_type(), stream.stream_index())
+                else:
+                    frame = frameset.first_or_default(stream.stream_type())
+                    key_ = (stream.stream_type(), 0)
+                frames[dev_info][key_] = frame
     return frames
 
 
@@ -58,8 +56,11 @@ for device in context.devices:
 
     enabled_devices[serial] = Device(pipeline, pipeline_profile, product)
 
+print("enabled")
+
 while True:
     multi_cam_frames = get_frames()
+    print(len(multi_cam_frames))
     cols = []
     for cam, frames in multi_cam_frames.items():
         images = []
