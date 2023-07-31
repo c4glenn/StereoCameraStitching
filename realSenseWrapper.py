@@ -32,7 +32,11 @@ class RealsenseManager:
             pass
 
     def rectify(self, frame, serial, type, index):
+        if(type == rs.stream.depth):
+            print("rectifying depth")
         if(int(serial) == 927522071127):
+            if(type == rs.stream.depth):
+                print("rotating depth")
             frame = cv2.rotate(frame, cv2.ROTATE_180)
 
         return frame
@@ -89,9 +93,9 @@ class RealsenseManager:
                     elif(stream.stream_type() == rs.stream.depth):
                         frame = frameset.first_or_default(stream.stream_type())
                         if(setFrames == 1):
-                            self.depthFrames.append(frame.get_data())
+                            self.depthFrames.append(self.rectify(np.asanyarray(frame.get_data()), serial, stream.stream_type(), stream.stream_index()))
                         else:
-                            self.depthFrames = [frame.get_data()]
+                            self.depthFrames = [self.rectify(np.asanyarray(frame.get_data()), serial, stream.stream_type(), stream.stream_index())]
                             setFrames = 1
                         key_ = (stream.stream_type(), 0)
                     else:
