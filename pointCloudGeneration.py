@@ -38,7 +38,8 @@ CAMERA_EXTRINSICS = [
     np.array([
         [ 9.99999991e-01,  3.22346979e-06, 1.31991937e-04, -1.71120036],
         [-3.08123524e-06,  9.99999419e-01, -1.07758629e-03, 0.00405337],
-        [-1.31995334e-04,  1.07758588e-03,  9.99999411e-01, -0.06324388]
+        [-1.31995334e-04,  1.07758588e-03,  9.99999411e-01, -0.06324388],
+        [0, 0, 0, 1]
     ])
 ]
 
@@ -76,17 +77,13 @@ class Visualizer:
     def displayImage(self, name, image):
         cv2.imshow(name, image)
     
-    def doEachLoop(self, pointcloud):
+    def doEachLoop(self, pointcloud):        
+        print(f"passed in:{len(pointcloud.points)} points")
         
-
-        legacy_pointcloud = pointcloud.to_legacy()
-        
-        print(f"passed in:{len(pointcloud.point)} points\nlegacy conversion: {len(legacy_pointcloud.points)} points")
-        
-        self.geometry.points = legacy_pointcloud.points
+        self.geometry.points = pointcloud.points
 
         if COLORS:
-            self.geometry.colors = legacy_pointcloud.colors
+            self.geometry.colors = pointcloud.colors
         
         
         self.controller.update_geometry(self.geometry)
@@ -133,10 +130,9 @@ class Rectifier:
         return self.methodResolver[self.method]()
 
     def generateOnePointCloudV0(self, color, depth, extrinsic, intrinsic):
-        o3dcolor = o3d.utility.Vector3dVector(color)
-        o3ddepth = o3d.utility.Vector3dVector(depth)
-        rgb = o3d.t.geometry.Image(o3dcolor)
-        depth = o3d.t.geometry.Image(o3ddepth)
+        npdepth = np.asarray(depth)
+        rgb = o3d.t.geometry.Image(color.astype(np.uint16))
+        depth = o3d.t.geometry.Image(npdepth.astype(np.uint16))
         
         rgbd = o3d.t.geometry.RGBDImage(rgb, depth, True)
 
@@ -153,15 +149,16 @@ class Rectifier:
         print("depth gotten")
     
 
-        geo = o3d.t.geometry.PointCloud() 
-
-        print(frames)
+        geo = o3d.geometry.PointCloud() 
 
         for color, depth, intrinsic, extrinsic in zip(frames, depth, CAMERA_INTRINSICS, CAMERA_EXTRINSICS):
             pc = self.generateOnePointCloudV0(color, depth, extrinsic, intrinsic)
-            print(len(pc.point))
-            geo.append(pc)
-        
+            legacyPC = pc.to_legacy()
+            geo.points.extend(legacyPC.points)
+            if COLORS:
+                geo.colors.extend(legacyPC.colors)
+            
+                
         return geo
         
     
