@@ -68,27 +68,19 @@ class Visualizer:
     def __init__(self) -> None:
         self.controller = vis.Visualizer()
         self.controller.create_window()
-        self.geometry = o3d.geometry.PointCloud()
-
-        self.controller.add_geometry(self.geometry)
+    
+    def do_once(self, geometry) -> None:
+        self.controller.add_geometry(geometry)
         self.controller.poll_events()
         self.controller.update_renderer()
-    
+
     def displayImage(self, name, image):
         cv2.imshow(name, image)
     
     def doEachLoop(self, pointcloud):        
         print(f"passed in:{len(pointcloud.points)} points")
         
-        self.geometry.points = pointcloud.points
-
-        if COLORS:
-            self.geometry.colors = pointcloud.colors
-
-        np.save("pointcloudFromV2.npy", np.asarray(self.geometry.points))
-        print("saved")
-        
-        self.controller.update_geometry(self.geometry)
+        self.controller.update_geometry(pointcloud)
         self.controller.poll_events()
         self.controller.update_renderer()
 
