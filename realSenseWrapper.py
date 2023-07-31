@@ -32,7 +32,7 @@ class RealsenseManager:
             pass
 
     def rectify(self, frame, serial, type, index):
-        if(int(serial) == 927522071127):
+        f(int(serial) == 927522071127):
             frame = cv2.rotate(frame, cv2.ROTATE_180)
 
         return frame

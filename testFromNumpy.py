@@ -1,7 +1,7 @@
 import numpy as np
 import open3d as o3d
 
-val = np.load("pointcloudFromV1.npy")
+val = np.load("pointcloudFromV2.npy")
 
 
 

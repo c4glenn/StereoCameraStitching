@@ -84,7 +84,9 @@ class Visualizer:
 
         if COLORS:
             self.geometry.colors = pointcloud.colors
-        
+
+        np.save("pointcloudFromV2.npy", np.asarray(self.geometry.points))
+        print("saved")
         
         self.controller.update_geometry(self.geometry)
         self.controller.poll_events()
