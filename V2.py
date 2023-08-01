@@ -71,6 +71,8 @@ class Rectifier:
                 if COLORS:
                     geo.colors.extend(legacyPC.colors)
         
+        np.save(f"numpySaves/V2-{self.method}.ply", np.array(geo.points))
+        
         return geo
 
     def generateOnePointCloud(self, color, depth, extrinsic, intrinsic):
