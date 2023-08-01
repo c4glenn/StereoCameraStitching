@@ -2,7 +2,7 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 
-USECAMERA = False
+USECAMERA = True
 FILEPATH = "1689969928.504082.jpg"
 
 class Device:
@@ -44,6 +44,7 @@ class RealsenseManager:
 
     def enableDevices(self):
         if USECAMERA:
+            print("here")
             for device in self.context.devices:
                 pipeline = rs.pipeline()
                 product = device.get_info(rs.camera_info.product_line)
@@ -69,37 +70,46 @@ class RealsenseManager:
     def get_cam_frames(self) -> list:
         frames = {}
         setFrames = 0
-        while len(frames) < len(self.enabled_devices.items()):
-            for serial, device in self.enabled_devices.items():
-                streams = device.pipeline_profile.get_streams()
-                frameset = device.pipeline.poll_for_frames()
-                if(frameset.size() == len(streams)):
-                    frames[serial] = {}
-                    for stream in streams:
-                        if(stream.stream_type() == rs.stream.infrared):
-                            frame = frameset.get_infrared_frame(stream.stream_index())
-                            key_ = (stream.stream_type(), stream.stream_index())
-                        elif(stream.stream_type() == rs.stream.depth):
-                            if(setFrames == 1):
-                                self.depthFrames.append(frameset.first_or_default(stream.stream_type()))
-                            else:
-                                self.depthFrames = [frameset.first_or_default(stream.stream_type())]
+        print(f"{len(self.enabled_devices.items())} enabled devices")
+        for serial, device in self.enabled_devices.items():
+            print(f"handling {serial} device")
+            streams = device.pipeline_profile.get_streams()
+            frameset = device.pipeline.wait_for_frames()
+            print(f"streams: {len(streams)} framset: {frameset.size()}")
+            if(frameset.size() == len(streams)):
+                print("framset was the number of streams ")
+                frames[serial] = {}
+                for stream in streams:
+                    if(stream.stream_type() == rs.stream.infrared):
+                        frame = frameset.get_infrared_frame(stream.stream_index())
+                        key_ = (stream.stream_type(), stream.stream_index())
+                    elif(stream.stream_type() == rs.stream.depth):
+                        if(setFrames == 1):
+                            self.depthFrames.append(frameset.first_or_default(stream.stream_type()))
                         else:
-                            frame = frameset.first_or_default(stream.stream_type())
-                            key_ = (stream.stream_type(), 0)
-                        frames[serial][key_] = self.rectify(np.asanyarray(frame.get_data()), serial, stream.stream_type(), stream.stream_index())
+                            self.depthFrames = [frameset.first_or_default(stream.stream_type())]
+                        frame = self.depthFrames[len(self.depthFrames)-1]
+                        key_ = (stream.stream_type(), 0)
+                    else:
+                        frame = frameset.first_or_default(stream.stream_type())
+                        key_ = (stream.stream_type(), 0)
+                    frames[serial][key_] = self.rectify(np.asanyarray(frame.get_data()), serial, stream.stream_type(), stream.stream_index())
         cleanFrames = []
 
         for serial, key in frames.items():
             for k, frame in key.items():
+                if(k[0] == rs.stream.depth):
+                    continue
                 cleanFrames.append((f"{serial}{k[1]}", frame))
         cleanFrames.sort(key=lambda x: x[0])
+
+        print(f"{len(cleanFrames)} frames being outputed")
 
         return [f[1] for f in cleanFrames]
 
     
 if __name__ == "__main__":
-    rsm = RealsenseManager(None, False, False)
+    rsm = RealsenseManager(None, True, True)
     rsm.enableDevices()
     while True:
         frame = rsm.get_frames()
