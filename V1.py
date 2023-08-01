@@ -1,5 +1,5 @@
 from realSenseWrapper import RealsenseManager
-from V0PointCloudGen import Visualizer, Pose, CAMERA_POSES, TRANSLATIONAL_SCALE
+from V0 import Visualizer, Pose, CAMERA_POSES, TRANSLATIONAL_SCALE
 from tqdm import tqdm
 
 

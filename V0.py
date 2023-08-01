@@ -84,7 +84,7 @@ class RealSenseCamera:
             return o3d.t.io.RealSenseSensorConfig(json.load(config_file))
 
     def create_config_with_serial(serial:str) -> o3d.t.io.RealSenseSensorConfig:
-        with open("defaultRealSenseConfig.json") as config_file:
+        with open("RealSenseConfig.json") as config_file:
             config_settings = json.load(config_file)
             config_settings["serial"] = serial
             return o3d.t.io.RealSenseSensorConfig(config_settings)

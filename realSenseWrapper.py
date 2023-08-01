@@ -66,7 +66,7 @@ class RealsenseManager:
         if USECAMERA:
             return self.get_cam_frames()
         else:
-            return [cv2.imread("VideoForTests/frame1/"+FILEPATH), cv2.imread("VideoForTests/frame2/"+FILEPATH), cv2.imread("VideoForTests/frame4/"+FILEPATH), cv2.imread("VideoForTests/frame5/"+FILEPATH), cv2.imread("VideoForTests/frame0/"+FILEPATH), cv2.imread("VideoForTests/frame3/"+FILEPATH)]
+            return [cv2.imread("SavedFrames/frame1/"+FILEPATH), cv2.imread("SavedFrames/frame2/"+FILEPATH), cv2.imread("SavedFrames/frame4/"+FILEPATH), cv2.imread("SavedFrames/frame5/"+FILEPATH), cv2.imread("SavedFrames/frame0/"+FILEPATH), cv2.imread("SavedFrames/frame3/"+FILEPATH)]
     
     
             
