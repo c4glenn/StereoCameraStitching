@@ -39,10 +39,10 @@ class Rectifier:
     def __init__(self, method:RectificationMethod) -> None:
         self.method = method
         self.methodResolver = {
-            RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC: self.calibratedIntrinsicAndExtrinsic,
-            RectificationMethod.CALIBRATED_EXTRINSIC: self.calibratedExtrinsic,
-            RectificationMethod.CALIBRATED_INTRINSIC: self.calibratedIntrinsic,
-            RectificationMethod.DEFAULT: self.default
+            RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC: (CALIBRATED_INTRINSICS, CALIBRATED_EXTRINSICS),
+            RectificationMethod.CALIBRATED_EXTRINSIC: (DEFAULT_INTRINSICS, CALIBRATED_EXTRINSICS),
+            RectificationMethod.CALIBRATED_INTRINSIC: (CALIBRATED_INTRINSICS, DEFAULT_INTRINSICS),
+            RectificationMethod.DEFAULT: (DEFAULT_INTRINSICS, DEFUALT_EXTRINSICS)
         }
         self.rsm = RealsenseManager(None, True, COLORS)
         self.rsm.enableDevices()
@@ -55,33 +55,11 @@ class Rectifier:
 
         frames = [frames[0], frames[3]]
 
-        return self.methodResolver[self.method](geo, frames, depth)
-
-    def generateOnePointCloud(self, color, depth, extrinsic, intrinsic):
-        npdepth = np.asarray(depth)
-        rgb = o3d.t.geometry.Image(color.astype(np.uint16))
-        
-        depth = o3d.t.geometry.Image(npdepth.astype(np.uint16))
-        #is.draw_geometries([rgb.to_legacy()])
-        rgbd = o3d.t.geometry.RGBDImage(rgb, depth, True)
-
-        pointcloud = o3d.t.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic, extrinsic)
-
-        return pointcloud
-    
-    def calibratedExtrinsic(self, geo, frames, depth):
-        pass
-    
-    def calibratedIntrinsic(self, geo, frames, depth):
-        pass
-    
-    def default(self, geo, frames, depth):
-        pass
-    
-    def calibratedIntrinsicAndExtrinsic(self, geo, frames, depth):
         firstItterFlag = True
 
-        for color, depth, intrinsic, extrinsic in zip(frames, depth, CALIBRATED_INTRINSICS, CALIBRATED_EXTRINSICS):
+        intrin, extrin = self.methodResolver[self.method]
+
+        for color, depth, intrinsic, extrinsic in zip(frames, depth, intrin, extrin):
             pc = self.generateOnePointCloud(color, depth, extrinsic, intrinsic)
             legacyPC = pc.to_legacy()
             if(firstItterFlag):
@@ -95,6 +73,19 @@ class Rectifier:
                     geo.colors.extend(legacyPC.colors)
         
         return geo
+
+    def generateOnePointCloud(self, color, depth, extrinsic, intrinsic):
+        npdepth = np.asarray(depth)
+        rgb = o3d.t.geometry.Image(color.astype(np.uint16))
+        
+        depth = o3d.t.geometry.Image(npdepth.astype(np.uint16))
+        #is.draw_geometries([rgb.to_legacy()])
+        rgbd = o3d.t.geometry.RGBDImage(rgb, depth, True)
+
+        pointcloud = o3d.t.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic, extrinsic)
+
+        return pointcloud
+
 
 def main():
     rec = Rectifier(RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC)
