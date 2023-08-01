@@ -64,7 +64,11 @@ def calibrate_single_camera(number, intrinsic:bool=True):
 
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (h,w), None, None)
 
-    new_mtxl, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+    print(f"cam num: {number}")
+
+    print(mtx)
+
+    new_mtxl, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 0, (w,h))
 
     print(f"rsme: {ret}")
 
