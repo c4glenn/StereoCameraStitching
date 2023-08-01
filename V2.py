@@ -3,57 +3,13 @@ import open3d as o3d
 import open3d.visualization as vis
 from enum import Enum
 from realSenseWrapper import RealsenseManager
-from dataclasses import dataclass
 import numpy as np
 from plySave import write_ply
-
-from numpy import cos, sin, pi
-
+from IntrinsicsAndExtrinsics import DEFUALT_EXTRINSICS, DEFAULT_INTRINSICS, CALIBRATED_EXTRINSICS, CALIBRATED_INTRINSICS
 
 #SETABLE FLAGS
 REALTIME = True
 COLORS = False
-TRANSLATIONAL_SCALE:float = 0.05
-
-
-CALIBRATED_INTRINSICS = [
-    np.array([
-        [642.69646676,   0,         646.336484],
-        [0,         644.92030593, 351.69780459],
-        [0, 0, 1]
-    ]),
-    np.array([
-        [639.53915538,   0,         642.22773266],
-        [0,         641.38228746, 364.04678063],
-        [0, 0, 1]
-    ])
-]
-
-CALIBRATED_EXTRINSICS = [
-    np.array([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]
-    ]),
-    np.array([
-        [0.74754093,  0.01511931, -0.66404365, -2.14950322*TRANSLATIONAL_SCALE],
-        [-0.00917135,  0.99988054,  0.01244127,0.02752463*TRANSLATIONAL_SCALE],
-        [0.66415243, -0.00321018,  0.74759029,-0.79388597*TRANSLATIONAL_SCALE],
-        [0, 0, 0, 1]
-    ])
-]
-
-def load_stereo_coefficients(number1, number2):
-    cv_file = cv2.FileStorage("improved_params2.xml", cv2.FileStorage_READ)
-    leftMapX = cv_file.getNode(f"M{number1}-{number2}L_Stereo_Map_x").mat()
-    leftMapY = cv_file.getNode(f"M{number1}-{number2}L_Stereo_Map_y").mat()
-    rightMapX = cv_file.getNode(f"M{number1}-{number2}R_Stereo_Map_x").mat()
-    rightMapY = cv_file.getNode(f"M{number1}-{number2}R_Stereo_Map_y").mat()
-    Q = cv_file.getNode(f"M{number1}-{number2}Q").mat()
-    cv_file.release()
-    return leftMapX, leftMapY, rightMapX, rightMapY, Q
-
 
 class Visualizer:
     def __init__(self) -> None:
