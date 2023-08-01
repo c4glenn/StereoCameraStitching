@@ -32,10 +32,12 @@ def create_extrinsic(pose: Pose) -> np.array:
             [0, 0, 0, 1]
         ])
 
-
-
 DEFUALT_EXTRINSICS = [create_extrinsic(pose) for pose in camera_poses]
-DEFAULT_INTRINSICS = [o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)] * 6
+DEFAULT_INTRINSICS = [np.array([
+      [525, 0, 319.5],
+      [0, 525, 239.5],
+      [0, 0, 1]
+])] * 6
 
 
 CALIBRATED_INTRINSICS = [

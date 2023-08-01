@@ -41,7 +41,7 @@ class Rectifier:
         self.methodResolver = {
             RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC: (CALIBRATED_INTRINSICS, CALIBRATED_EXTRINSICS),
             RectificationMethod.CALIBRATED_EXTRINSIC: (DEFAULT_INTRINSICS, CALIBRATED_EXTRINSICS),
-            RectificationMethod.CALIBRATED_INTRINSIC: (CALIBRATED_INTRINSICS, DEFAULT_INTRINSICS),
+            RectificationMethod.CALIBRATED_INTRINSIC: (CALIBRATED_INTRINSICS, DEFUALT_EXTRINSICS),
             RectificationMethod.DEFAULT: (DEFAULT_INTRINSICS, DEFUALT_EXTRINSICS)
         }
         self.rsm = RealsenseManager(None, True, COLORS)
@@ -88,7 +88,7 @@ class Rectifier:
 
 
 def main():
-    rec = Rectifier(RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC)
+    rec = Rectifier(RectificationMethod.CALIBRATED_INTRINSIC)
     viz = Visualizer()
     pointCloud = rec.generatePointCloud()
     viz.doOnce(pointCloud)
@@ -96,7 +96,7 @@ def main():
     if REALTIME:
         while True:
             pointCloud = rec.generatePointCloud(pointCloud)
-            write_ply("comparingPointClouds/CalibratedIntrinsicAndExtrinsic", np.asarray(pointCloud.points))
+            write_ply("comparingPointClouds/CalibratedIntrinsic", np.asarray(pointCloud.points))
             viz.doEachLoop(pointCloud)
         
     
