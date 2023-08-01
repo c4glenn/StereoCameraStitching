@@ -1,0 +1,19 @@
+This repo is split into different parts
+
+V#.py are the various versions of this test
+V0 is using the built in Functions to generate point clouds (has some artifacts in the overlap region)
+V1 is using OpenCV and stereo matching (its passive stereo and very noisy)
+V2 is using Calibrated matricies in various forms to modify V0 to get better point clouds
+
+
+resetCameras.py is a tool that will hardware reset all attached cameras, sometimes the cameras will stop outputting frames, but running this fixes it (it has been built into V2 so you shouldnt need to run it for that one)
+
+
+Calibration/ contains scripts and images used to calibrate the cameras
+
+numpySaves/ contains still pointclouds saved from the versions and a way to render them
+
+SavedFrames/ has frames for use when you dont have physical cameras
+
+TestsAndLearning/ has some various scripts that illustrate various concepts with the libraries and is a good way to understand how something works in MVP
+
