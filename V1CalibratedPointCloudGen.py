@@ -31,7 +31,7 @@ def create_extrinsic(pose: Pose) -> np.array:
         ])
 
 def load_stereo_coefficients(number1, number2):
-    cv_file = cv2.FileStorage("improved_params2.xml", cv2.FileStorage_READ)
+    cv_file = cv2.FileStorage("CalibrationParameters.xml", cv2.FileStorage_READ)
     leftMapX = cv_file.getNode(f"M{number1}-{number2}L_Stereo_Map_x").mat()
     leftMapY = cv_file.getNode(f"M{number1}-{number2}L_Stereo_Map_y").mat()
     rightMapX = cv_file.getNode(f"M{number1}-{number2}R_Stereo_Map_x").mat()
