@@ -5,17 +5,18 @@ from enum import Enum
 from realSenseWrapper import RealsenseManager
 from dataclasses import dataclass
 import numpy as np
+from plySave import write_ply
 
 from numpy import cos, sin, pi
 
 
 #SETABLE FLAGS
 REALTIME = True
-COLORS = True
+COLORS = False
 TRANSLATIONAL_SCALE:float = 0.05
 
 
-CAMERA_INTRINSICS = [
+CALIBRATED_INTRINSICS = [
     np.array([
         [642.69646676,   0,         646.336484],
         [0,         644.92030593, 351.69780459],
@@ -28,7 +29,7 @@ CAMERA_INTRINSICS = [
     ])
 ]
 
-CAMERA_EXTRINSICS = [
+CALIBRATED_EXTRINSICS = [
     np.array([
         [1, 0, 0, 0],
         [0, 1, 0, 0],
@@ -42,16 +43,6 @@ CAMERA_EXTRINSICS = [
         [0, 0, 0, 1]
     ])
 ]
-
-
-@dataclass
-class Pose:
-    x: float = 0
-    y: float = 0
-    z: float = 0
-    rX: float = 0
-    rY: float = 0
-    rZ: float = 0
 
 def load_stereo_coefficients(number1, number2):
     cv_file = cv2.FileStorage("improved_params2.xml", cv2.FileStorage_READ)
@@ -83,24 +74,34 @@ class Visualizer:
         self.controller.update_renderer()
 
 class RectificationMethod(Enum):
-    V0 = 0
-    V1 = 1
+    DEFAULT = 0
+    CALIBRATED_INTRINSIC = 1
+    CALIBRATED_EXTRINSIC = 2
+    CALIBRATED_INTRINSIC_AND_EXTRINSIC = 3
 
 class Rectifier:
     def __init__(self, method:RectificationMethod) -> None:
         self.method = method
         self.methodResolver = {
-            RectificationMethod.V0: self.V0generate,
-            RectificationMethod.V1: self.V1generate
+            RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC: self.calibratedIntrinsicAndExtrinsic,
+            RectificationMethod.CALIBRATED_EXTRINSIC: self.calibratedExtrinsic,
+            RectificationMethod.CALIBRATED_INTRINSIC: self.calibratedIntrinsic,
+            RectificationMethod.DEFAULT: self.default
         }
         self.rsm = RealsenseManager(None, True, COLORS)
         self.rsm.enableDevices()
         
     
     def generatePointCloud(self, oldGeo=None):
-        return self.methodResolver[self.method](oldGeo)
+        frames = self.rsm.get_frames()
+        depth = self.rsm.getDepthFrames()
+        geo = o3d.geometry.PointCloud() if not oldGeo else oldGeo
 
-    def generateOnePointCloudV0(self, color, depth, extrinsic, intrinsic):
+        frames = [frames[0], frames[3]]
+
+        return self.methodResolver[self.method](geo, frames, depth)
+
+    def generateOnePointCloud(self, color, depth, extrinsic, intrinsic):
         npdepth = np.asarray(depth)
         rgb = o3d.t.geometry.Image(color.astype(np.uint16))
         
@@ -111,26 +112,21 @@ class Rectifier:
         pointcloud = o3d.t.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic, extrinsic)
 
         return pointcloud
-
     
-    def V0generate(self, oldGeo):
-        #print("V0 Selected to generate Point Clouds")
-        frames = self.rsm.get_frames()
-        
-        #print(f"{len(frames)} Frames gotten")
-        depth = self.rsm.getDepthFrames()
-
-        #print(f"{len(depth)} depth frames gotten")
+    def calibratedExtrinsic(self, geo, frames, depth):
+        pass
     
-
-        geo = o3d.geometry.PointCloud() if not oldGeo else oldGeo
-
-        frames = [frames[0], frames[3]]
-
+    def calibratedIntrinsic(self, geo, frames, depth):
+        pass
+    
+    def default(self, geo, frames, depth):
+        pass
+    
+    def calibratedIntrinsicAndExtrinsic(self, geo, frames, depth):
         firstItterFlag = True
 
-        for color, depth, intrinsic, extrinsic in zip(frames, depth, CAMERA_INTRINSICS, CAMERA_EXTRINSICS):
-            pc = self.generateOnePointCloudV0(color, depth, extrinsic, intrinsic)
+        for color, depth, intrinsic, extrinsic in zip(frames, depth, CALIBRATED_INTRINSICS, CALIBRATED_EXTRINSICS):
+            pc = self.generateOnePointCloud(color, depth, extrinsic, intrinsic)
             legacyPC = pc.to_legacy()
             if(firstItterFlag):
                 geo.points = legacyPC.points
@@ -142,18 +138,10 @@ class Rectifier:
                 if COLORS:
                     geo.colors.extend(legacyPC.colors)
         
-
-        np.save("pointcloudFromV2.npy", np.asarray(geo.points))
-            
-                
         return geo
-        
-    
-    def V1generate(self):
-        pass
 
 def main():
-    rec = Rectifier(RectificationMethod.V0)
+    rec = Rectifier(RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC)
     viz = Visualizer()
     pointCloud = rec.generatePointCloud()
     viz.doOnce(pointCloud)
@@ -161,6 +149,7 @@ def main():
     if REALTIME:
         while True:
             pointCloud = rec.generatePointCloud(pointCloud)
+            write_ply("comparingPointClouds/CalibratedIntrinsicAndExtrinsic", np.asarray(pointCloud.points))
             viz.doEachLoop(pointCloud)
         
     
