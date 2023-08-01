@@ -36,7 +36,7 @@ class RectificationMethod(Enum):
     CALIBRATED_INTRINSIC_AND_EXTRINSIC = 3
 
 class Rectifier:
-    def __init__(self, method:RectificationMethod) -> None:
+    def __init__(self, method:RectificationMethod, rsm: RealsenseManager) -> None:
         self.method = method
         self.methodResolver = {
             RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC: (CALIBRATED_INTRINSICS, CALIBRATED_EXTRINSICS),
@@ -44,8 +44,7 @@ class Rectifier:
             RectificationMethod.CALIBRATED_INTRINSIC: (CALIBRATED_INTRINSICS, DEFUALT_EXTRINSICS),
             RectificationMethod.DEFAULT: (DEFAULT_INTRINSICS, DEFUALT_EXTRINSICS)
         }
-        self.rsm = RealsenseManager(None, True, COLORS)
-        self.rsm.enableDevices()
+        self.rsm = rsm
         
     
     def generatePointCloud(self, oldGeo=None):
@@ -88,16 +87,30 @@ class Rectifier:
 
 
 def main():
-    rec = Rectifier(RectificationMethod.CALIBRATED_INTRINSIC)
+    rsm = RealsenseManager(None, True, COLORS)
+    rsm.enableDevices()
+    recDef = Rectifier(RectificationMethod.DEFAULT, rsm)
+    pointCloudDef = recDef.generatePointCloud()
+    recCI = Rectifier(RectificationMethod.CALIBRATED_INTRINSIC, rsm)
+    pointCloudCI = recCI.generatePointCloud()
+    recCE = Rectifier(RectificationMethod.CALIBRATED_EXTRINSIC, rsm)
+    pointCloudCE = recCE.generatePointCloud()
+    recCIE = Rectifier(RectificationMethod.CALIBRATED_INTRINSIC_AND_EXTRINSIC, rsm)
+    pointCloudCIE = recCIE.generatePointCloud()
     viz = Visualizer()
-    pointCloud = rec.generatePointCloud()
-    viz.doOnce(pointCloud)
+    viz.doOnce(pointCloudCIE)
     
     if REALTIME:
         while True:
-            pointCloud = rec.generatePointCloud(pointCloud)
-            write_ply("comparingPointClouds/CalibratedIntrinsic", np.asarray(pointCloud.points))
-            viz.doEachLoop(pointCloud)
+            pointCloudDef = recDef.generatePointCloud(pointCloudDef)
+            pointCloudCI = recCI.generatePointCloud(pointCloudCI)
+            pointCloudCE = recCE.generatePointCloud(pointCloudCE)
+            pointCloudCIE = recCIE.generatePointCloud(pointCloudCIE)
+            write_ply("comparingPointClouds/Default.ply", np.asarray(pointCloudDef.points))
+            write_ply("comparingPointClouds/CalibratedIntrinsic.ply", np.asarray(pointCloudCI.points))
+            write_ply("comparingPointClouds/CalibratedExtrinsic.ply", np.asarray(pointCloudCE.points))
+            write_ply("comparingPointClouds/CalibratedIntrinsicAndExtrinsic.ply", np.asarray(pointCloudCIE.points))
+            viz.doEachLoop(pointCloudCIE)
         
     
 
