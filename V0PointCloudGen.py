@@ -39,7 +39,7 @@ class Visualizer():
         self.controller.poll_events()
         self.controller.update_renderer()
 
-""" class RealSenseCamera:
+class RealSenseCamera:
     def __init__(self, config:o3d.t.io.RealSenseSensorConfig, intrinsic, extrinsic) -> None:
         self.config = config
         self.intrinsic = intrinsic
@@ -62,7 +62,7 @@ class Visualizer():
             raise RuntimeError("Must start capture before generating pointclouds")
         capture = self.cam.capture_frame(True, True)
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(capture.color.to_legacy(), capture.depth.to_legacy(), convert_rgb_to_intensity=False)
-        print(np.asarray(rgbd_image))
+        print(np.asarray(rgbd_image.color))
         point_cloud = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, self.intrinsic, self.extrinsic)
         a = o3d.geometry.PointCloud()
         points = np.asarray(point_cloud.points)
@@ -106,7 +106,7 @@ class Visualizer():
             [sa*sc-ca*sb*cc, ca*sb*sc+sa*cc, ca*cb, x*(sa*sc-ca*sb*cc)+y*(ca*sb*sc+sa*cc) + z*(ca*cb)],
             [0, 0, 0, 1]
         ])
-        pass """
+
     
 class RectificationMethod(Enum):
     EXTRINSIC = 0
@@ -139,20 +139,26 @@ class Rectifier():
         
         return main_pointcloud
 
-""" 
+
 def create_cameras() -> list[RealSenseCamera]:
     cameras:list[RealSenseCamera] = []
     for i in range(NUM_CAMERAS):
         config = RealSenseCamera.create_config_with_index(i)
-        extrinsic = RealSenseCamera.create_extrinsic(CAMERA_POSES[i])
+        extrinsic = np.identity(4) if i == 0 else np.array([
+            [0.74441105,  0.01645506, -0.66751886, -2.26793635],
+            [-0.01026634,  0.99986019,  0.01319869, 0.00328511],
+            [ 0.66764272, -0.00297227,  0.7444759, -0.67126237],
+            [0, 0, 0, 1]
+
+        ])
         cameras.append(RealSenseCamera(config, DEFAULT_INTRINSIC, extrinsic))
         cameras[i].start_capture(False)
     
     return cameras
- """
+
 def main():
     visualizer = Visualizer()
-    """ rectifier = Rectifier(RectificationMethod.EXTRINSIC)
+    rectifier = Rectifier(RectificationMethod.EXTRINSIC)
     cameras = create_cameras()
     
     geo = rectifier.rectify([x.generate_point_cloud() for x in cameras])
@@ -160,14 +166,19 @@ def main():
     visualizer.do_once(geo)
     try:
         while True:
-            geo = rectifier.rectify([x.generate_point_cloud() for x in cameras], old_geo)
+            pointclouds = []
+            for cam in cameras:
+                pointcloud = cam.generate_point_cloud()
+                print(len(pointcloud.points))
+                pointclouds.append(pointcloud)
+            
+            geo = rectifier.rectify(pointclouds, old_geo)
             old_geo = geo
+            print(len(geo.points))
             visualizer.do_each_loop(geo)
     except KeyboardInterrupt:
         for cam in cameras:
             cam.stop()
- """
-
 
 if __name__ == "__main__":
     main()
