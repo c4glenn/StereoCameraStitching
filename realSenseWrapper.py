@@ -32,11 +32,7 @@ class RealsenseManager:
             pass
 
     def rectify(self, frame, serial, type, index):
-        if(type == rs.stream.depth):
-            print("rectifying depth")
         if(int(serial) == 927522071127):
-            if(type == rs.stream.depth):
-                print("rotating depth")
             frame = cv2.rotate(frame, cv2.ROTATE_180)
 
         return frame
@@ -77,14 +73,13 @@ class RealsenseManager:
     def get_cam_frames(self) -> list:
         frames = {}
         setFrames = 0
-        print(f"{len(self.enabled_devices.items())} enabled devices")
+        #print(f"{len(self.enabled_devices.items())} enabled devices")
         for serial, device in self.enabled_devices.items():
-            print(f"handling {serial} device")
             streams = device.pipeline_profile.get_streams()
             frameset = device.pipeline.wait_for_frames()
-            print(f"streams: {len(streams)} framset: {frameset.size()}")
+            #print(f"streams: {len(streams)} framset: {frameset.size()}")
             if(frameset.size() == len(streams)):
-                print("framset was the number of streams ")
+                #print("framset was the number of streams ")
                 frames[serial] = {}
                 for stream in streams:
                     if(stream.stream_type() == rs.stream.infrared):
@@ -111,7 +106,7 @@ class RealsenseManager:
                 cleanFrames.append((f"{serial}{k[1]}", frame))
         cleanFrames.sort(key=lambda x: x[0])
 
-        print(f"{len(cleanFrames)} frames being outputed")
+        #print(f"{len(cleanFrames)} frames being outputed")
 
         return [f[1] for f in cleanFrames]
 
