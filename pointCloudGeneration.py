@@ -12,7 +12,7 @@ from numpy import cos, sin, pi
 #SETABLE FLAGS
 REALTIME = True
 COLORS = True
-TRANSLATIONAL_SCALE = 25.4
+TRANSLATIONAL_SCALE:float = 0.05
 
 
 CAMERA_INTRINSICS = [
@@ -36,9 +36,9 @@ CAMERA_EXTRINSICS = [
         [0, 0, 0, 1]
     ]),
     np.array([
-        [ 9.99999991e-01,  3.22346979e-06, 1.31991937e-04, -1.71120036],
-        [-3.08123524e-06,  9.99999419e-01, -1.07758629e-03, 0.00405337],
-        [-1.31995334e-04,  1.07758588e-03,  9.99999411e-01, -0.06324388],
+        [0.74754093,  0.01511931, -0.66404365, -2.14950322*TRANSLATIONAL_SCALE],
+        [-0.00917135,  0.99988054,  0.01244127,0.02752463*TRANSLATIONAL_SCALE],
+        [0.66415243, -0.00321018,  0.74759029,-0.79388597*TRANSLATIONAL_SCALE],
         [0, 0, 0, 1]
     ])
 ]
@@ -69,7 +69,7 @@ class Visualizer:
         self.controller = vis.Visualizer()
         self.controller.create_window()
     
-    def do_once(self, geometry) -> None:
+    def doOnce(self, geometry) -> None:
         self.controller.add_geometry(geometry)
         self.controller.poll_events()
         self.controller.update_renderer()
@@ -77,9 +77,7 @@ class Visualizer:
     def displayImage(self, name, image):
         cv2.imshow(name, image)
     
-    def doEachLoop(self, pointcloud):        
-        print(f"passed in:{len(pointcloud.points)} points")
-        
+    def doEachLoop(self, pointcloud):                
         self.controller.update_geometry(pointcloud)
         self.controller.poll_events()
         self.controller.update_renderer()
@@ -88,27 +86,6 @@ class RectificationMethod(Enum):
     V0 = 0
     V1 = 1
 
-
-CAMERA_POSES = [
-    Pose(x=0, y=0, z=0, rX=0, rY=0, rZ=0),
-    Pose(x=0, y=0, z=0, rX=0, rY=-0.872665, rZ=pi)
-]
-
-def create_extrinsic(pose: Pose) -> np.array:
-        ca, a, sa = cos(pose.rX), pose.rX, sin(pose.rX)
-        cb, b, sb = cos(pose.rY), pose.rY, sin(pose.rY)
-        cc, c, sc = cos(pose.rZ), pose.rZ, sin(pose.rZ)
-        x = pose.x * TRANSLATIONAL_SCALE
-        y = pose.y * TRANSLATIONAL_SCALE
-        z = pose.z * TRANSLATIONAL_SCALE
-        return np.array([
-            [cb*cc, -cb*sc, sb, x*cb*cc - y*cb*sc],
-            [sa*sb*cc + ca*sc, ca*cc-sa*sb*sc, -sa*cb, x*(sa*sb*cc+ca*sc) + y*(ca*cc-sa*sb*sc) - z*(sa*cb)],
-            [sa*sc-ca*sb*cc, ca*sb*sc+sa*cc, ca*cb, x*(sa*sc-ca*sb*cc)+y*(ca*sb*sc+sa*cc) + z*(ca*cb)],
-            [0, 0, 0, 1]
-        ])
-    
-    
 class Rectifier:
     def __init__(self, method:RectificationMethod) -> None:
         self.method = method
@@ -120,14 +97,15 @@ class Rectifier:
         self.rsm.enableDevices()
         
     
-    def generatePointCloud(self):
-        return self.methodResolver[self.method]()
+    def generatePointCloud(self, oldGeo=None):
+        return self.methodResolver[self.method](oldGeo)
 
     def generateOnePointCloudV0(self, color, depth, extrinsic, intrinsic):
         npdepth = np.asarray(depth)
         rgb = o3d.t.geometry.Image(color.astype(np.uint16))
-        depth = o3d.t.geometry.Image(npdepth.astype(np.uint16))
         
+        depth = o3d.t.geometry.Image(npdepth.astype(np.uint16))
+        #is.draw_geometries([rgb.to_legacy()])
         rgbd = o3d.t.geometry.RGBDImage(rgb, depth, True)
 
         pointcloud = o3d.t.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic, extrinsic)
@@ -135,22 +113,37 @@ class Rectifier:
         return pointcloud
 
     
-    def V0generate(self):
-        print("V0 Selected to generate Point Clouds")
+    def V0generate(self, oldGeo):
+        #print("V0 Selected to generate Point Clouds")
         frames = self.rsm.get_frames()
-        print("Frames gotten")
+        
+        #print(f"{len(frames)} Frames gotten")
         depth = self.rsm.getDepthFrames()
-        print("depth gotten")
+
+        #print(f"{len(depth)} depth frames gotten")
     
 
-        geo = o3d.geometry.PointCloud() 
+        geo = o3d.geometry.PointCloud() if not oldGeo else oldGeo
+
+        frames = [frames[0], frames[3]]
+
+        firstItterFlag = True
 
         for color, depth, intrinsic, extrinsic in zip(frames, depth, CAMERA_INTRINSICS, CAMERA_EXTRINSICS):
             pc = self.generateOnePointCloudV0(color, depth, extrinsic, intrinsic)
             legacyPC = pc.to_legacy()
-            geo.points.extend(legacyPC.points)
-            if COLORS:
-                geo.colors.extend(legacyPC.colors)
+            if(firstItterFlag):
+                geo.points = legacyPC.points
+                if(COLORS):
+                    geo.colors = legacyPC.colors 
+                firstItterFlag = False
+            else:
+                geo.points.extend(legacyPC.points)
+                if COLORS:
+                    geo.colors.extend(legacyPC.colors)
+        
+
+        np.save("pointcloudFromV2.npy", np.asarray(geo.points))
             
                 
         return geo
@@ -162,19 +155,13 @@ class Rectifier:
 def main():
     rec = Rectifier(RectificationMethod.V0)
     viz = Visualizer()
-    print("visualizer started")
     pointCloud = rec.generatePointCloud()
-    print("point cloud generated")
-    viz.doEachLoop(pointCloud)
-    print("displayed")
+    viz.doOnce(pointCloud)
     
     if REALTIME:
         while True:
-            print("~~~~~~~~~~~~~~~~~LOOP~~~~~~~~~~~~~~~~~~")
-            pointCloud = rec.generatePointCloud()
-            print("point cloud generated")
+            pointCloud = rec.generatePointCloud(pointCloud)
             viz.doEachLoop(pointCloud)
-            print("displayed")
         
     
 
